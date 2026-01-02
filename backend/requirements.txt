@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+requests
+openai
+sentence-transformers
+faiss-cpu
+scikit-learn
+aiofiles
+python-multipart
