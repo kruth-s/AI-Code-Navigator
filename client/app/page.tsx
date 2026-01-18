@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Eye, Check, ArrowRight, Apple } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -22,7 +23,7 @@ export default function Home() {
         {/* Logo */}
         <div className="relative z-10">
           <h1 className="text-3xl font-bold tracking-widest text-white">
-            NMU
+            AKAZA
           </h1>
         </div>
 
@@ -37,8 +38,8 @@ export default function Home() {
         {/* Bottom Text */}
         <div className="relative z-10 mt-auto mb-12">
           <h2 className="text-5xl font-medium leading-tight mb-2 tracking-tight">
-            Capturing Moments,<br />
-            Creating Memories
+            Navigate Codebases,<br />
+            Amplify Intelligence
           </h2>
           
           {/* Pagination dots */}
@@ -55,12 +56,12 @@ export default function Home() {
         <div className="w-full max-w-[480px] space-y-8">
           
           <div className="space-y-2">
-            <h2 className="text-4xl font-semibold tracking-tight text-white">Create an account</h2>
+            <h2 className="text-4xl font-semibold tracking-tight text-white">Join AI Code Navigator</h2>
             <p className="text-zinc-400">
               Already have an account?{" "}
-              <a href="#" className="text-violet-400 hover:text-violet-300 transition-colors underline-offset-4 hover:underline">
+              <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors underline-offset-4 hover:underline">
                 Log in
-              </a>
+              </Link>
             </p>
           </div>
 
@@ -70,7 +71,7 @@ export default function Home() {
                 <div className="relative">
                   <input 
                     type="text" 
-                    placeholder="Fletcher"
+                    placeholder="First Name"
                     className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
                   />
                 </div>

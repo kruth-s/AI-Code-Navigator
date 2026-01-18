@@ -1,0 +1,31 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# Next.js (redundant if inside client, but good to have)
+.next/
+out/
+build/
+.vercel/
