@@ -1,103 +1,140 @@
+"use client";
+
 import Image from "next/image";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { ArrowRight, Github, Eye } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function LoginPage() {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
-    <main className="flex min-h-screen w-full bg-[#0d1b2a] text-white overflow-hidden font-sans">
-      {/* Left Column - Hero Image */}
-      <div className="hidden lg:flex w-1/2 relative flex-col justify-between p-12">
+    <main className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden">
+      {/* Left Column - Image & Branding */}
+      <div className="hidden lg:flex w-1/2 relative bg-zinc-900 flex-col justify-between p-8 md:p-12">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
             src="/auth-bg.png"
-            alt="Login Background"
+            alt="Authentication Background"
             fill
-            className="object-cover"
+            className="object-cover opacity-90"
             priority
           />
-           {/* Gradient overlays to match the reference look */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a] via-transparent to-transparent opacity-80" />
-          <div className="absolute inset-0 bg-black/20" />
+          {/* Overlay gradient for text readability if needed */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 mix-blend-multiply" />
         </div>
 
-        {/* Branding */}
+        {/* Logo */}
         <div className="relative z-10">
-           {/* Using the red branding color from previous usage if implied, or sticking to white/clean */}
+          <h1 className="text-3xl font-bold tracking-widest text-white">
+            AKAZA
+          </h1>
         </div>
+
+        {/* Top Right text (on top of image? Design shows it's part of the image area top right) */}
+        <a 
+          href="#" 
+          className="absolute top-10 right-10 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors text-sm font-medium border border-white/10"
+        >
+          Back to website <ArrowRight className="w-4 h-4" />
+        </a>
 
         {/* Bottom Text */}
-        <div className="relative z-10 mt-auto mb-8 text-center text-white/90">
-             <h2 className="text-3xl font-light mb-2">AI Generative</h2>
-             <h3 className="text-4xl font-semibold mb-4">Anything you can Imagine</h3>
-             <p className="text-sm text-white/60 uppercase tracking-widest">Generate code with Akaza</p>
+        <div className="relative z-10 mt-auto mb-12">
+          <h2 className="text-5xl font-medium leading-tight mb-2 tracking-tight">
+            Navigate Codebases,<br />
+            Amplify Intelligence
+          </h2>
+          
+          {/* Pagination dots */}
+          <div className="flex gap-2 mt-8">
+            <div className="w-8 h-1.5 rounded-full bg-white"></div>
+            <div className="w-2.5 h-1.5 rounded-full bg-white/40 hover:bg-white/60 cursor-pointer transition-colors"></div>
+            <div className="w-2.5 h-1.5 rounded-full bg-white/40 hover:bg-white/60 cursor-pointer transition-colors"></div>
+          </div>
         </div>
       </div>
 
       {/* Right Column - Login Form */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 lg:p-24 relative z-10 bg-[#063e9b] bg-gradient-to-br from-[#021333] to-[#042861]">
-         {/* Top Navigation */}
-         <div className="absolute top-8 left-8 lg:left-auto lg:right-12 w-full lg:w-auto flex justify-between lg:justify-end px-4 lg:px-0">
-             <Link href="/" className="flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm">
-                <ArrowRight className="w-4 h-4 rotate-180" /> Back to Signup
-             </Link>
-         </div>
-
-        <div className="w-full max-w-[420px] space-y-10 relative">
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 relative z-10">
+        <div className="w-full max-w-[480px] space-y-8">
           
-          {/* Glow Effect behind the form */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-blue-500/20 blur-[100px] rounded-full pointer-events-none" />
-
-          <div className="space-y-2 relative z-10 block">
-            <h4 className="text-zinc-400 text-sm font-medium uppercase tracking-wide">Login your account</h4>
-            <h1 className="text-5xl font-bold text-white tracking-tight">Welcome Back!</h1>
-            <p className="text-zinc-400">Enter your email and password</p>
+          <div className="space-y-2">
+            <h2 className="text-4xl font-semibold tracking-tight text-white">Welcome Back!</h2>
+            <p className="text-zinc-400">
+              Don't have an account?{" "}
+              <Link href="/" className="text-violet-400 hover:text-violet-300 transition-colors underline-offset-4 hover:underline">
+                Sign up
+              </Link>
+            </p>
           </div>
 
-          <form className="space-y-6 relative z-10">
+          <form className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm text-zinc-400 ml-1">Email address</label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-white transition-colors">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input 
-                  type="email" 
-                  defaultValue="Hello@basitkhan.design"
-                  className="w-full h-14 rounded-2xl bg-[#0a1e3f]/50 border border-blue-500/30 text-white placeholder:text-zinc-600 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-                />
-              </div>
+              <input 
+                type="email" 
+                placeholder="Email address"
+                className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
+              />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-400 ml-1">Password</label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-white transition-colors">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <input 
-                  type="password" 
-                  placeholder="Enter your password"
-                  className="w-full h-14 rounded-2xl bg-[#0a1e3f]/50 border border-blue-500/30 text-white placeholder:text-zinc-600 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-                />
-                 {/* Blue glow specifically under/around the password field as per design reference */}
-                 <div className="absolute inset-0 -z-10 bg-blue-600/10 blur-xl rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+            <div className="space-y-2 relative">
+              <input 
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 pr-12 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
+              />
+              <button 
+                type="button" 
+                className="absolute right-4 top-1/3 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                onMouseDown={() => setShowPassword(true)}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={() => setShowPassword(true)}
+                onTouchEnd={() => setShowPassword(false)}
+              >
+                <Eye className="w-5 h-5" />
+              </button>
+              <div className="flex justify-end mt-2">
+                <Link href="#" className="text-sm text-zinc-400 hover:text-violet-400 transition-colors">
+                  Forgot Password?
+                </Link>
               </div>
-            </div>
-
-            <div className="flex justify-start">
-               <Link href="#" className="text-sm text-zinc-400 hover:text-white transition-colors underline decoration-zinc-600 underline-offset-4">
-                 Forgot Password?
-               </Link>
             </div>
 
             <button
                type="button" 
-               className="w-full h-14 rounded-2xl bg-gradient-to-r from-black via-zinc-900 to-black hover:from-zinc-900 hover:to-zinc-800 text-white font-medium text-lg transition-all shadow-lg border border-white/10 active:scale-[0.98]"
+               className="w-full h-12 rounded-lg bg-[#765cde] hover:bg-[#654aca] text-white font-medium text-lg transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98]"
             >
               Sign in
             </button>
           </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-zinc-700/50"></span>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-[#1c1a23] px-2 text-zinc-500">Or login with</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <button className="flex items-center justify-center gap-2 h-12 rounded-lg border border-zinc-700 hover:bg-zinc-800/50 transition-colors text-zinc-300 hover:text-white group">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Google
+            </button>
+            <button className="flex items-center justify-center gap-2 h-12 rounded-lg border border-zinc-700 hover:bg-zinc-800/50 transition-colors text-zinc-300 hover:text-white">
+              <Github className="w-5 h-5 text-white" fill="currentColor" />
+              Github
+            </button>
+          </div>
         </div>
       </div>
     </main>

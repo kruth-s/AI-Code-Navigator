@@ -1,10 +1,15 @@
+"use client";
+
 import Image from "next/image";
-import { Eye, Check, ArrowRight, Apple } from "lucide-react";
+import { Eye, Check, ArrowRight, Github } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function Home() {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
-    <main className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden">
+    <main className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden scrollbar-hide">
       {/* Left Column - Image & Branding */}
       <div className="hidden lg:flex w-1/2 relative bg-zinc-900 flex-col justify-between p-8 md:p-12">
         {/* Background Image */}
@@ -52,8 +57,8 @@ export default function Home() {
       </div>
 
       {/* Right Column - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 relative z-10">
-        <div className="w-full max-w-[480px] space-y-8">
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 relative z-10 overflow-y-auto max-h-screen scrollbar-hide">
+        <div className="w-full max-w-[480px] space-y-8 my-auto">
           
           <div className="space-y-2">
             <h2 className="text-4xl font-semibold tracking-tight text-white">Join AI Code Navigator</h2>
@@ -97,11 +102,19 @@ export default function Home() {
 
             <div className="space-y-2 relative">
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 pr-12 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
               />
-              <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+              <button 
+                type="button" 
+                className="absolute right-4 top-2/5 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                onMouseDown={() => setShowPassword(true)}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={() => setShowPassword(true)}
+                onTouchEnd={() => setShowPassword(false)}
+              >
                 <Eye className="w-5 h-5" />
               </button>
             </div>
@@ -148,8 +161,8 @@ export default function Home() {
               Google
             </button>
             <button className="flex items-center justify-center gap-2 h-12 rounded-lg border border-zinc-700 hover:bg-zinc-800/50 transition-colors text-zinc-300 hover:text-white">
-              <Apple className="w-5 h-5 text-white" fill="currentColor" />
-              Apple
+              <Github className="w-5 h-5 text-white" fill="currentColor" />
+              Github
             </button>
           </div>
         </div>
