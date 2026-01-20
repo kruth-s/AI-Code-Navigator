@@ -5,7 +5,7 @@ import "./globals.css";
 const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AKAZA - Create an Account",
+  title: "AKAZA - AI Code Navigator",
   description: "Join our community today",
 };
 

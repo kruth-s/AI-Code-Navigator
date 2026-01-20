@@ -1,15 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, Github, Eye } from "lucide-react";
+import { Eye, Check, ArrowRight, Github } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <main className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden">
+    <main className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden scrollbar-hide">
       {/* Left Column - Image & Branding */}
       <div className="hidden lg:flex w-1/2 relative bg-zinc-900 flex-col justify-between p-8 md:p-12">
         {/* Background Image */}
@@ -33,14 +33,13 @@ export default function LoginPage() {
         </div>
 
         {/* Top Right text (on top of image? Design shows it's part of the image area top right) */}
-        {/* Top Right text (on top of image? Design shows it's part of the image area top right) */}
         <Link 
           href="/" 
           className="absolute top-10 right-10 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors text-sm font-medium border border-white/10"
         >
           Back to website <ArrowRight className="w-4 h-4" />
         </Link>
-        
+
         {/* Bottom Text */}
         <div className="relative z-10 mt-auto mb-12">
           <h2 className="text-5xl font-medium leading-tight mb-2 tracking-tight">
@@ -57,25 +56,46 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Column - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 relative z-10">
-        <div className="w-full max-w-[480px] space-y-8">
+      {/* Right Column - Form */}
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 relative z-10 overflow-y-auto max-h-screen scrollbar-hide">
+        <div className="w-full max-w-[480px] space-y-8 my-auto">
           
           <div className="space-y-2">
-            <h2 className="text-4xl font-semibold tracking-tight text-white">Welcome Back!</h2>
+            <h2 className="text-4xl font-semibold tracking-tight text-white">Join AI Code Navigator</h2>
             <p className="text-zinc-400">
-              Don't have an account?{" "}
-              <Link href="/signup" className="text-violet-400 hover:text-violet-300 transition-colors underline-offset-4 hover:underline">
-                Sign up
+              Already have an account?{" "}
+              <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors underline-offset-4 hover:underline">
+                Log in
               </Link>
             </p>
           </div>
 
           <form className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="First Name"
+                    className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="Last name"
+                    className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <input 
                 type="email" 
-                placeholder="Email address"
+                placeholder="Email"
                 className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
               />
             </div>
@@ -83,12 +103,12 @@ export default function LoginPage() {
             <div className="space-y-2 relative">
               <input 
                 type={showPassword ? "text" : "password"}
-                placeholder="Password"
+                placeholder="Enter your password"
                 className="w-full h-12 rounded-lg bg-[#27252e] border border-zinc-700/50 text-white placeholder:text-zinc-500 px-4 pr-12 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
               />
               <button 
                 type="button" 
-                className="absolute right-4 top-1/3 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                className="absolute right-4 top-2/5 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer"
                 onMouseDown={() => setShowPassword(true)}
                 onMouseUp={() => setShowPassword(false)}
                 onMouseLeave={() => setShowPassword(false)}
@@ -97,18 +117,27 @@ export default function LoginPage() {
               >
                 <Eye className="w-5 h-5" />
               </button>
-              <div className="flex justify-end mt-2">
-                <Link href="#" className="text-sm text-zinc-400 hover:text-violet-400 transition-colors">
-                  Forgot Password?
-                </Link>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="relative flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="terms" 
+                  className="peer h-5 w-5 appearance-none rounded border border-zinc-600 bg-[#27252e] checked:bg-white transition-all cursor-pointer"
+                />
+                <Check className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={3} />
               </div>
+              <label htmlFor="terms" className="text-sm text-zinc-400 cursor-pointer select-none">
+                I agree to the <a href="#" className="text-violet-400 hover:text-violet-300 hover:underline">Terms & Conditions</a>
+              </label>
             </div>
 
             <button
                type="button" 
                className="w-full h-12 rounded-lg bg-[#765cde] hover:bg-[#654aca] text-white font-medium text-lg transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98]"
             >
-              Sign in
+              Create account
             </button>
           </form>
 
@@ -117,7 +146,7 @@ export default function LoginPage() {
               <span className="w-full border-t border-zinc-700/50"></span>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#1c1a23] px-2 text-zinc-500">Or login with</span>
+              <span className="bg-[#1c1a23] px-2 text-zinc-500">Or register with</span>
             </div>
           </div>
 
