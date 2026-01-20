@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, User, Menu, Play } from "lucide-react";
+import { ArrowRight, User, Menu, Play, Shield, ArrowUpRight } from "lucide-react";
 
 export default function LandingPage() {
   const [showLanding, setShowLanding] = useState(false);
@@ -17,7 +17,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen w-full bg-black overflow-hidden font-sans text-white">
+    <div className="relative h-screen w-full bg-black overflow-hidden font-sans text-white scrollbar-hide">
       <AnimatePresence mode="wait">
         {!showLanding ? (
           <IntroAnimation key="intro" />
@@ -76,23 +76,40 @@ function LandingContent() {
       transition={{ duration: 1 }}
     >
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
+      {/* Navbar */}
+      <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full z-50 relative">
+        {/* Left: Logo */}
         <div className="flex items-center gap-2">
-           <div className="bg-black text-white p-1 rounded-sm"><div className="w-4 h-4 bg-white"></div></div>
-           <span className="font-bold text-xl tracking-tight text-slate-900">Marketeam</span>
+            <div className="bg-white text-black p-1 rounded-full"><div className="w-4 h-4 rounded-full bg-black"></div></div>
+           <span className="font-bold text-xl tracking-tight text-white">AKAZA</span>
         </div>
         
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-700">
-          <Link href="#" className="hover:text-black transition-colors">Your Team</Link>
-          <Link href="#" className="hover:text-black transition-colors">Solutions</Link>
-          <Link href="#" className="hover:text-black transition-colors">Blog</Link>
-          <Link href="#" className="hover:text-black transition-colors">Pricing</Link>
+        {/* Center: Floating Pill Nav */}
+        <div className="hidden md:flex items-center bg-white/10 backdrop-blur-md rounded-full px-1 py-1 border border-white/10 shadow-lg">
+           <div className="flex items-center gap-1 px-4 text-[13px] font-medium text-gray-300">
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Home</Link>
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">DeFi App</Link>
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Assets</Link>
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Features</Link>
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Pricing</Link>
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">FAQ</Link>
+           </div>
+           
+           <div className="flex items-center gap-2 pl-2 pr-1 border-l border-white/10 ml-2">
+              <span className="text-[13px] font-medium text-gray-300 pl-2 cursor-pointer hover:text-white flex items-center gap-1">
+                Protection <ArrowUpRight className="w-3 h-3" />
+              </span>
+              <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-colors cursor-pointer">
+                 <Shield className="w-4 h-4 fill-current" />
+              </div>
+           </div>
         </div>
 
+        {/* Right: Actions */}
         <div className="flex items-center gap-6">
-           <Link href="/login" className="text-sm font-medium text-slate-700 hover:text-black transition-colors">Log In</Link>
-           <Link href="/signup" className="px-5 py-2.5 rounded-full bg-slate-900 text-white hover:bg-black transition-all text-sm font-medium shadow-lg shadow-purple-900/20">
-             Join Now
+           <Link href="/signup" className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+             <User className="w-5 h-5" />
+             Create Account
            </Link>
         </div>
       </nav>
@@ -114,91 +131,45 @@ function LandingContent() {
             Now Just One <br/>
             Click Away!
           </motion.h1>
-          
+
+
+        </div>
+
+        {/* Right Content - Abstract Visuals */}
+        <div className="relative hidden lg:block">
           <motion.div 
-            className="flex items-center gap-6"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
+             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/30 to-orange-300/30 rounded-full blur-3xl"
+             animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
+             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="relative z-20 mb-8 flex flex-wrap gap-4 justify-center"
           >
-             <button className="group flex items-center gap-2 px-8 py-4 rounded-full bg-slate-900 border border-white/10 hover:border-violet-500/50 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] transition-all">
-               <span className="text-white font-medium">Start Project</span>
-               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-             </button>
-             
-             {/* Floating UI Element hinting 'David' */}
-             <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#7c3aed] rounded-full text-xs font-medium shadow-lg rotate-[15deg] translate-y-8">
-               <span>David</span>
-               <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-[#7c3aed] absolute -top-2 left-2 rotate-180"></div>
-             </div>
+            <Link href="/signup" className="group flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-full font-medium hover:bg-black transition-all hover:scale-105">
+              Start Hiring <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <button className="flex items-center gap-2 px-8 py-4 rounded-full font-medium text-slate-700 hover:text-black transition-colors">
+              <Play className="w-4 h-4" /> Watch Demo
+            </button>
           </motion.div>
+
+          <div className="relative z-10 p-8 rounded-2xl border border-white/20 shadow-xl bg-white/10 backdrop-blur-md">
+             {/* Simple dashboard mock */}
+             <div className="space-y-4">
+                <div className="h-8 w-1/3 bg-slate-200/50 rounded animate-pulse" />
+                <div className="h-32 w-full bg-slate-200/30 rounded animate-pulse" />
+                <div className="flex gap-4">
+                   <div className="h-10 w-full bg-slate-200/30 rounded animate-pulse" />
+                   <div className="h-10 w-full bg-slate-200/30 rounded animate-pulse" />
+                </div>
+             </div>
+          </div>
         </div>
 
-        {/* Right Column - Orbital Visualization */}
-        <div className="relative h-[500px] w-full flex items-center justify-center">
-           <OrbitalSystem />
-        </div>
       </div>
-
-      {/* Footer Branding Strip */}
-      <div className="absolute bottom-0 w-full border-t border-white/5 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-8 py-8 flex justify-between items-center opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-           <div className="flex items-center gap-2"><span className="text-xl font-bold">Dreamure</span></div>
-           <div className="flex items-center gap-2"><span className="text-xl font-bold">SWITCH.WIN</span></div>
-           <div className="flex items-center gap-2"><span className="text-xl font-bold">glowsphere</span></div>
-           <div className="flex items-center gap-2"><span className="text-xl font-bold">PinSpace</span></div>
-           <div className="flex items-center gap-2"><span className="text-xl font-bold">Visionix</span></div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function OrbitalSystem() {
-  return (
-    <div className="relative w-[400px] h-[400px] md:w-[500px] md:h-[500px]">
-       {/* Center Text */}
-       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20">
-         <h3 className="text-4xl font-bold tracking-tighter">20k+</h3>
-         <p className="text-sm text-zinc-400">Specialists</p>
-       </div>
-
-       {/* Rings */}
-       <div className="absolute inset-0 rounded-full border border-white/5 animate-[spin_60s_linear_infinite]" />
-       <div className="absolute inset-[50px] rounded-full border border-white/5 animate-[spin_40s_linear_infinite_reverse]" />
-       <div className="absolute inset-[100px] rounded-full border border-white/5 animate-[spin_30s_linear_infinite]" />
-
-       {/* Orbiting Avatars (simulated with Framer Motion) */}
-       {/* Explicitly placing them for visual effect rather than complex math for now */}
-       
-       {/* Outer Ring Avatars */}
-       <FloatingAvatar className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" img="/placeholder" color="bg-blue-500" />
-       <FloatingAvatar className="absolute bottom-[20%] right-0 translate-x-1/2" img="/placeholder" color="bg-pink-500" delay={2} />
-       <FloatingAvatar className="absolute top-[30%] left-0 -translate-x-1/2" img="/placeholder" color="bg-orange-500" delay={4} />
-
-       {/* Inner Ring Avatars */}
-       <FloatingAvatar className="absolute top-[20%] right-[20%]" img="/placeholder" color="bg-violet-500" size="sm" delay={1} />
-       <FloatingAvatar className="absolute bottom-[20%] left-[20%]" img="/placeholder" color="bg-emerald-500" size="sm" delay={3} />
-       
-       <div className="absolute top-[10%] right-[10%] p-3 rounded-2xl bg-black border border-white/10 shadow-2xl shadow-blue-500/20">
-         <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-         </div>
-       </div>
-    </div>
-  );
-}
-
-function FloatingAvatar({ className, color, size = "md", delay = 0 }: { className?: string; color: string; size?: "sm" | "md"; img: string; delay?: number }) {
-  const sizeClasses = size === "md" ? "w-12 h-12" : "w-10 h-10";
-  
-  return (
-    <motion.div 
-      className={`${className} ${sizeClasses} rounded-full ${color} p-0.5 shadow-[0_0_15px_rgba(0,0,0,0.5)] z-10 flex items-center justify-center overflow-hidden border border-white/20`}
-      animate={{ y: [0, -10, 0] }}
-      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay }}
-    >
-      <User className="text-white w-2/3 h-2/3" />
     </motion.div>
   );
 }
