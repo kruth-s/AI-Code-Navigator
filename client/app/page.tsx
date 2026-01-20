@@ -67,7 +67,10 @@ function MarqueeRow({ direction, speed }: { direction: number; speed: number }) 
 function LandingContent() {
   return (
     <motion.div
-      className="relative min-h-screen w-full bg-gradient-to-br from-[#1a103c] via-[#0f0a20] to-black"
+      className="relative min-h-screen w-full"
+      style={{
+        background: "radial-gradient(ellipse at top left, #ffdec7 0%, #3b1d60 40%, #000000 100%)",
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1 }}
@@ -75,20 +78,20 @@ function LandingContent() {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-           <div className="bg-white text-black p-1 rounded-sm"><div className="w-4 h-4 bg-black"></div></div>
-           <span className="font-bold text-xl tracking-tight">Marketeam</span>
+           <div className="bg-black text-white p-1 rounded-sm"><div className="w-4 h-4 bg-white"></div></div>
+           <span className="font-bold text-xl tracking-tight text-slate-900">Marketeam</span>
         </div>
         
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
-          <Link href="#" className="hover:text-white transition-colors">Your Team</Link>
-          <Link href="#" className="hover:text-white transition-colors">Solutions</Link>
-          <Link href="#" className="hover:text-white transition-colors">Blog</Link>
-          <Link href="#" className="hover:text-white transition-colors">Pricing</Link>
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-700">
+          <Link href="#" className="hover:text-black transition-colors">Your Team</Link>
+          <Link href="#" className="hover:text-black transition-colors">Solutions</Link>
+          <Link href="#" className="hover:text-black transition-colors">Blog</Link>
+          <Link href="#" className="hover:text-black transition-colors">Pricing</Link>
         </div>
 
         <div className="flex items-center gap-6">
-           <Link href="/login" className="text-sm font-medium hover:text-white/80 transition-colors">Log In</Link>
-           <Link href="/signup" className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-md transition-all text-sm font-medium">
+           <Link href="/login" className="text-sm font-medium text-slate-700 hover:text-black transition-colors">Log In</Link>
+           <Link href="/signup" className="px-5 py-2.5 rounded-full bg-slate-900 text-white hover:bg-black transition-all text-sm font-medium shadow-lg shadow-purple-900/20">
              Join Now
            </Link>
         </div>
@@ -99,7 +102,7 @@ function LandingContent() {
         {/* Left Column */}
         <div className="space-y-8">
           <motion.h1 
-            className="text-5xl md:text-7xl font-semibold leading-[1.1] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70"
+            className="text-5xl md:text-7xl font-semibold leading-[1.1] tracking-tight text-slate-900"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.8 }}
