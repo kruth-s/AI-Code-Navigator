@@ -67,17 +67,13 @@ function MarqueeRow({ direction, speed }: { direction: number; speed: number }) 
 function LandingContent() {
   return (
     <motion.div
-      className="relative min-h-screen w-full"
-      style={{
-        background: "radial-gradient(ellipse at top left, #ffdec7 0%, #3b1d60 40%, #000000 100%)",
-      }}
+      className="relative h-screen w-full flex flex-col bg-black"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1 }}
     >
       {/* Navbar */}
-      {/* Navbar */}
-      <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full z-50 relative">
+      <nav className="flex-none flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full z-50 relative">
         {/* Left: Logo */}
         <div className="flex items-center gap-2">
             <div className="bg-white text-black p-1 rounded-full"><div className="w-4 h-4 rounded-full bg-black"></div></div>
@@ -86,18 +82,15 @@ function LandingContent() {
         
         {/* Center: Floating Pill Nav */}
         <div className="hidden md:flex items-center bg-white/10 backdrop-blur-md rounded-full px-1 py-1 border border-white/10 shadow-lg">
-           <div className="flex items-center gap-1 px-4 text-[13px] font-medium text-gray-300">
+           <div className="flex items-center gap-1 px-4 text-[15px] font-medium text-gray-300">
              <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Home</Link>
-             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">DeFi App</Link>
-             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Assets</Link>
-             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Features</Link>
-             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Pricing</Link>
-             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">FAQ</Link>
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">About</Link>
+             <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Services</Link>
            </div>
            
            <div className="flex items-center gap-2 pl-2 pr-1 border-l border-white/10 ml-2">
-              <span className="text-[13px] font-medium text-gray-300 pl-2 cursor-pointer hover:text-white flex items-center gap-1">
-                Protection <ArrowUpRight className="w-3 h-3" />
+              <span className="text-[15px] font-medium text-gray-300 pl-2 cursor-pointer hover:text-white flex items-center gap-1">
+                Contact Us <ArrowUpRight className="w-3 h-3" />
               </span>
               <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-colors cursor-pointer">
                  <Shield className="w-4 h-4 fill-current" />
@@ -107,68 +100,69 @@ function LandingContent() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-6">
-           <Link href="/signup" className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+           <Link href="/login" className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
              <User className="w-5 h-5" />
-             Create Account
+             Login
            </Link>
         </div>
       </nav>
 
-      {/* Hero Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-12 md:pt-20 grid lg:grid-cols-2 gap-12 items-center">
-        {/* Left Column */}
-        <div className="space-y-8">
-          <motion.h1 
-            className="text-5xl md:text-7xl font-semibold leading-[1.1] tracking-tight text-slate-900"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-          >
-            Unlock Top <br/>
-            Marketing Talent <br/>
-            You Thought Was <br/>
-            Out of Reach — <br/>
-            Now Just One <br/>
-            Click Away!
-          </motion.h1>
+      {/* Hero Content Card */}
+      <div 
+        className="flex-1 mx-6 mb-6 rounded-[40px] overflow-hidden relative"
+        style={{
+          background: "radial-gradient(ellipse at top left, #ffdec7 0%, #3b1d60 40%, #000000 100%)",
+        }}
+      >
+        <div className="relative z-10 w-full h-full max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Column */}
+          <div className="space-y-8">
+            <motion.h1 
+              className="text-5xl md:text-7xl font-semibold leading-[1.1] tracking-tight text-slate-900"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+            >
+              Unlock Top <br/>
+              Marketing Talent <br/>
+              Click Away!
+            </motion.h1>
+          </div>
 
+          {/* Right Content - Abstract Visuals */}
+          <div className="relative hidden lg:block">
+            <motion.div 
+               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/30 to-orange-300/30 rounded-full blur-3xl"
+               animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
+               transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="relative z-20 mb-8 flex flex-wrap gap-4 justify-center"
+            >
+              <Link href="/signup" className="group flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-full font-medium hover:bg-black transition-all hover:scale-105">
+                Start Hiring <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <button className="flex items-center gap-2 px-8 py-4 rounded-full font-medium text-slate-700 hover:text-black transition-colors">
+                <Play className="w-4 h-4" /> Watch Demo
+              </button>
+            </motion.div>
 
-        </div>
-
-        {/* Right Content - Abstract Visuals */}
-        <div className="relative hidden lg:block">
-          <motion.div 
-             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/30 to-orange-300/30 rounded-full blur-3xl"
-             animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
-             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="relative z-20 mb-8 flex flex-wrap gap-4 justify-center"
-          >
-            <Link href="/signup" className="group flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-full font-medium hover:bg-black transition-all hover:scale-105">
-              Start Hiring <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <button className="flex items-center gap-2 px-8 py-4 rounded-full font-medium text-slate-700 hover:text-black transition-colors">
-              <Play className="w-4 h-4" /> Watch Demo
-            </button>
-          </motion.div>
-
-          <div className="relative z-10 p-8 rounded-2xl border border-white/20 shadow-xl bg-white/10 backdrop-blur-md">
-             {/* Simple dashboard mock */}
-             <div className="space-y-4">
-                <div className="h-8 w-1/3 bg-slate-200/50 rounded animate-pulse" />
-                <div className="h-32 w-full bg-slate-200/30 rounded animate-pulse" />
-                <div className="flex gap-4">
-                   <div className="h-10 w-full bg-slate-200/30 rounded animate-pulse" />
-                   <div className="h-10 w-full bg-slate-200/30 rounded animate-pulse" />
-                </div>
-             </div>
+            <div className="relative z-10 p-8 rounded-2xl border border-white/20 shadow-xl bg-white/10 backdrop-blur-md">
+               {/* Simple dashboard mock */}
+               <div className="space-y-4">
+                  <div className="h-8 w-1/3 bg-slate-200/50 rounded animate-pulse" />
+                  <div className="h-32 w-full bg-slate-200/30 rounded animate-pulse" />
+                  <div className="flex gap-4">
+                     <div className="h-10 w-full bg-slate-200/30 rounded animate-pulse" />
+                     <div className="h-10 w-full bg-slate-200/30 rounded animate-pulse" />
+                  </div>
+               </div>
+            </div>
           </div>
         </div>
-
       </div>
     </motion.div>
   );
