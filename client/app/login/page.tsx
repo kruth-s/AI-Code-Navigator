@@ -3,13 +3,77 @@
 import Image from "next/image";
 import { ArrowRight, Github, Eye } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [showLanding, setShowLanding] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLanding(true);
+    }, 100); // 1 second as requested
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <main className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden">
+    <div className="relative h-screen w-full bg-[#1c1a23] overflow-hidden font-sans text-white scrollbar-hide">
+      <AnimatePresence mode="wait">
+        {!showLanding ? (
+          <IntroAnimation key="intro" />
+        ) : (
+          <LoginContent key="login" showPassword={showPassword} setShowPassword={setShowPassword} />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function IntroAnimation() {
+  return (
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
+      exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.8, ease: "anticipate" } }}
+    >
+      <div className="relative w-[250vw] h-[250vh] origin-center rotate-[-15deg] flex flex-col justify-center">
+        {/* Generates multiple rows of marquee text */}
+        {Array.from({ length: 4 }).map((_, i) => (
+          <MarqueeRow key={i} direction={i % 2 === 0 ? 1 : -1} speed={i % 2 === 0 ? 25 : 18} />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function MarqueeRow({ direction, speed }: { direction: number; speed: number }) {
+  return (
+    <div className="flex w-full overflow-hidden whitespace-nowrap -my-4">
+      <motion.div
+        className="flex gap-4 text-[33vh] font-black uppercase leading-none text-[#ffceb8]"
+        initial={{ x: direction > 0 ? "-20%" : "0%" }}
+        animate={{ x: direction > 0 ? "0%" : "-20%" }}
+        transition={{ repeat: Infinity, ease: "linear", duration: speed }}
+      >
+        {Array.from({ length: 20 }).map((_, i) => (
+          <span key={i} className="mx-2">
+          THE WEEKND 
+          </span>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function LoginContent({ showPassword, setShowPassword }: { showPassword: boolean; setShowPassword: (show: boolean) => void }) {
+  return (
+    <motion.main 
+      className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+    >
       {/* Left Column - Image & Branding */}
       <div className="hidden lg:flex w-1/2 relative bg-zinc-900 flex-col justify-between p-8 md:p-12">
         {/* Background Image */}
@@ -32,7 +96,6 @@ export default function LoginPage() {
           </h1>
         </div>
 
-        {/* Top Right text (on top of image? Design shows it's part of the image area top right) */}
         {/* Top Right text (on top of image? Design shows it's part of the image area top right) */}
         <Link 
           href="/" 
@@ -138,6 +201,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </main>
+    </motion.main>
   );
 }
