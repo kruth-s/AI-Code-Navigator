@@ -5,18 +5,25 @@ import { ArrowRight, Github, Eye } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showLanding, setShowLanding] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowLanding(true);
-    }, 100); // 1 second as requested
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push("/dashboard");
+  };
 
   return (
     <div className="relative h-screen w-full bg-[#1c1a23] overflow-hidden font-sans text-white scrollbar-hide">
@@ -24,7 +31,12 @@ export default function LoginPage() {
         {!showLanding ? (
           <IntroAnimation key="intro" />
         ) : (
-          <LoginContent key="login" showPassword={showPassword} setShowPassword={setShowPassword} />
+          <LoginContent 
+            key="login" 
+            showPassword={showPassword} 
+            setShowPassword={setShowPassword} 
+            handleLogin={handleLogin}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -34,12 +46,12 @@ export default function LoginPage() {
 function IntroAnimation() {
   return (
     <motion.div
-      className="absolute inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
+      className="fixed inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
       exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.8, ease: "anticipate" } }}
     >
-      <div className="relative w-[250vw] h-[250vh] origin-center rotate-[-15deg] flex flex-col justify-center">
+      <div className="relative w-[150vw] h-[150vh] origin-center rotate-[-60deg] flex flex-col justify-center">
         {/* Generates multiple rows of marquee text */}
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 9 }).map((_, i) => (
           <MarqueeRow key={i} direction={i % 2 === 0 ? 1 : -1} speed={i % 2 === 0 ? 25 : 18} />
         ))}
       </div>
@@ -51,14 +63,14 @@ function MarqueeRow({ direction, speed }: { direction: number; speed: number }) 
   return (
     <div className="flex w-full overflow-hidden whitespace-nowrap -my-4">
       <motion.div
-        className="flex gap-4 text-[33vh] font-black uppercase leading-none text-[#ffceb8]"
+        className="flex gap-4 text-[23vh] font-black uppercase leading-none text-[#ffceb8]"
         initial={{ x: direction > 0 ? "-20%" : "0%" }}
         animate={{ x: direction > 0 ? "0%" : "-20%" }}
         transition={{ repeat: Infinity, ease: "linear", duration: speed }}
       >
         {Array.from({ length: 20 }).map((_, i) => (
           <span key={i} className="mx-2">
-          THE WEEKND 
+            NAVIGATE CODE
           </span>
         ))}
       </motion.div>
@@ -66,7 +78,7 @@ function MarqueeRow({ direction, speed }: { direction: number; speed: number }) 
   );
 }
 
-function LoginContent({ showPassword, setShowPassword }: { showPassword: boolean; setShowPassword: (show: boolean) => void }) {
+function LoginContent({ showPassword, setShowPassword, handleLogin }: { showPassword: boolean; setShowPassword: (show: boolean) => void; handleLogin: (e: React.FormEvent) => void }) {
   return (
     <motion.main 
       className="flex min-h-screen w-full bg-[#1c1a23] text-white overflow-hidden"
@@ -134,7 +146,7 @@ function LoginContent({ showPassword, setShowPassword }: { showPassword: boolean
             </p>
           </div>
 
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleLogin}>
             <div className="space-y-2">
               <input 
                 type="email" 
@@ -168,7 +180,7 @@ function LoginContent({ showPassword, setShowPassword }: { showPassword: boolean
             </div>
 
             <button
-               type="button" 
+               type="submit" 
                className="w-full h-12 rounded-lg bg-[#765cde] hover:bg-[#654aca] text-white font-medium text-lg transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98]"
             >
               Sign in

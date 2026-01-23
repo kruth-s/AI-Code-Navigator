@@ -37,10 +37,11 @@ export default function LandingPage() {
 function IntroAnimation() {
   return (
     <motion.div
-      className="fixed inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
+      className="absolute inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
       exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.8, ease: "easeInOut" } }}
     >
-      <div className="relative w-[150vw] h-[150vh] origin-center rotate-[-15deg] flex flex-col justify-center">
+      <div className="relative w-[250vw] h-[250vh] origin-center rotate-[-15deg] flex flex-col justify-center">
+        {/* Generates multiple rows of marquee text */}
         {Array.from({ length: 4 }).map((_, i) => (
           <MarqueeRow key={i} direction={i % 2 === 0 ? 1 : -1} speed={i % 2 === 0 ? 25 : 18} />
         ))}
@@ -53,14 +54,14 @@ function MarqueeRow({ direction, speed }: { direction: number; speed: number }) 
   return (
     <div className="flex w-full overflow-hidden whitespace-nowrap -my-4">
       <motion.div
-        className="flex gap-4 text-[23vh] font-black uppercase leading-none text-[#ffceb8]"
+        className="flex gap-4 text-[33vh] font-black uppercase leading-none text-[#ffceb8]"
         initial={{ x: direction > 0 ? "-20%" : "0%" }}
         animate={{ x: direction > 0 ? "0%" : "-20%" }}
         transition={{ repeat: Infinity, ease: "linear", duration: speed }}
       >
         {Array.from({ length: 20 }).map((_, i) => (
           <span key={i} className="mx-2">
-            NAVIGATE CODE
+          THE WEEKND 
           </span>
         ))}
       </motion.div>
@@ -107,7 +108,7 @@ function Navbar() {
            <Link href="#how-it-works" className="hover:text-white px-3 py-2 transition-colors">How It Works</Link>
            <Link href="#demo" className="hover:text-white px-3 py-2 transition-colors">Demo</Link>
            <Link href="#" className="hover:text-white px-3 py-2 transition-colors">Docs</Link>
-           <Link href="#" className="hover:text-white px-3 py-2 transition-colors flex items-center gap-1">
+           <Link href="https://github.com/kruth-s/AI-Code-Navigator" className="hover:text-white px-3 py-2 transition-colors flex items-center gap-1">
              <Github className="w-4 h-4" /> GitHub
            </Link>
          </div>

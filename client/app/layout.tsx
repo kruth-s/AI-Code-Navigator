@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="scrollbar-hide">
       <body className={`${outfit.className} scrollbar-hide`}>{children}</body>
     </html>
   );
