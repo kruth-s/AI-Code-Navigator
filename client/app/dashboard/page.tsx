@@ -3,9 +3,20 @@
 import { motion } from "framer-motion";
 import { Plus, Github, ArrowRight, Loader2, GitBranch, Database, FileText } from "lucide-react";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 
 export default function DashboardPage() {
   const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnectGithub = async () => {
+    setIsConnecting(true);
+    try {
+      await signIn("github");
+    } catch (error) {
+      console.error("GitHub connection failed", error);
+      setIsConnecting(false);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-12">
@@ -62,7 +73,7 @@ export default function DashboardPage() {
             
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
                <button 
-                 onClick={() => setIsConnecting(true)}
+                 onClick={handleConnectGithub}
                  className="flex-1 flex items-center justify-center gap-2 h-11 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium transition-all active:scale-95"
                >
                  {isConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}

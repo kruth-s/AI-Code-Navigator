@@ -6,7 +6,7 @@ import {
   FolderGit2, MessageSquare
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
@@ -14,6 +14,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = () => {
+    // In a real app with NextAuth, you would call signOut() here
+    // await signOut({ callbackUrl: '/login' });
+    router.push("/login");
+  };
 
   return (
     <div className="flex h-screen w-full bg-[#0f0f11] text-white font-sans overflow-hidden">
@@ -34,7 +41,10 @@ export default function DashboardLayout({
         </nav>
 
         <div className="p-4 border-t border-white/5">
-          <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+          <button 
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+          >
             <LogOut className="w-5 h-5" />
             Sign Out
           </button>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google"; // Using Outfit for that modern look
 import "./globals.css";
+import { Providers } from "./providers";
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -16,7 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scrollbar-hide">
-      <body className={`${outfit.className} scrollbar-hide`}>{children}</body>
+      <body className={`${outfit.className} scrollbar-hide`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
