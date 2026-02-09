@@ -9,22 +9,41 @@ export default function ChatPage() {
     { role: 'assistant', content: 'Hello! I am Akaza. Connect a repository and ask me anything about your codebase.' }
   ]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
     const userInput = input;
+    setMessages(prev => [...prev, { role: 'user', content: userInput }]);
     setInput("");
+    setLoading(true);
 
-    // Mock response
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userInput }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch response');
+      }
+
+      const data = await response.json();
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: `I'm analyzing the codebase based on: "${userInput}". \n\nHere is a mock snippet relevant to your query:\n\n\`\`\`python\ndef authenticate_user(username, password):\n    user = db.get_user(username)\n    if user and verify_hash(password, user.password_hash):\n        return create_access_token(user.id)\n    return None\n\`\`\``
+        content: data.answer 
       }]);
-    }, 1000);
+    } catch (error) {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "Sorry, I encountered an error connecting to the server. Please ensure the backend is running." 
+      }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -85,9 +104,10 @@ export default function ChatPage() {
           />
           <button 
             type="submit"
-            className="absolute right-2 top-2 h-10 w-10 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center justify-center transition-colors shadow-lg shadow-violet-500/20"
+            disabled={loading}
+            className={`absolute right-2 top-2 h-10 w-10 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center justify-center transition-colors shadow-lg shadow-violet-500/20 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <Send className="w-4 h-4" />
+            {loading ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </form>
         <p className="text-xs text-center text-gray-600 mt-2">

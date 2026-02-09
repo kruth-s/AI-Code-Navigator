@@ -3,7 +3,39 @@
 import { motion } from "framer-motion";
 import { User, Lock, Bell, Key, CreditCard, Shield } from "lucide-react";
 
+import { useState, useEffect } from "react";
+
 export default function SettingsPage() {
+  const [settings, setSettings] = useState({
+    GEMINI_API_KEY: "",
+    GROQ_API_KEY: "",
+    GITHUB_ACCESS_TOKEN: ""
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        setSettings(data);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleUpdate = async (key: string, value: string) => {
+    try {
+       await fetch('http://127.0.0.1:8000/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [key]: value })
+       });
+       alert("Setting updated!");
+       setSettings(prev => ({ ...prev, [key]: value ? "********" : null }));
+    } catch (e) {
+       alert("Failed to update setting");
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
        <div>
@@ -20,26 +52,23 @@ export default function SettingsPage() {
               </div>
            </Section>
 
-           {/* API Keys Section */}
            <Section title="Integrations & API Keys" icon={<Key className="w-5 h-5" />}>
               <div className="space-y-4">
-                 <div className="p-4 bg-white/5 border border-white/5 rounded-xl">
-                    <div className="flex justify-between items-start mb-2">
-                       <span className="font-medium">OpenAI API Key</span>
-                       <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Connected</span>
-                    </div>
-                    <div className="flex gap-2">
-                       <input type="password" value="sk-........................" disabled className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-1.5 text-sm text-gray-500" />
-                       <button className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors">Edit</button>
-                    </div>
-                 </div>
-                 <div className="p-4 bg-white/5 border border-white/5 rounded-xl">
-                    <div className="flex justify-between items-start mb-2">
-                       <span className="font-medium">GitHub Access Token</span>
-                       <span className="text-xs px-2 py-0.5 rounded bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">Not Connected</span>
-                    </div>
-                    <button className="text-sm text-violet-400 hover:text-violet-300 transition-colors">Connect GitHub Account</button>
-                 </div>
+                 {/* Gemini */}
+                 <ApiKeyInput 
+                    label="Google Gemini API Key" 
+                    connected={!!settings.GEMINI_API_KEY} 
+                    onSave={(val) => handleUpdate("GEMINI_API_KEY", val)}
+                 />
+                 
+
+
+                 {/* GitHub */}
+                 <ApiKeyInput 
+                    label="GitHub Access Token" 
+                    connected={!!settings.GITHUB_ACCESS_TOKEN} 
+                    onSave={(val) => handleUpdate("GITHUB_ACCESS_TOKEN", val)}
+                 />
               </div>
            </Section>
 
@@ -111,5 +140,65 @@ function Toggle({ label, defaultChecked }: { label: string, defaultChecked?: boo
          </div>
          <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{label}</span>
       </label>
+   );
+}
+
+function ApiKeyInput({ label, connected, onSave }: { label: string, connected: boolean, onSave: (val: string) => void }) {
+   const [isEditing, setIsEditing] = useState(false);
+   const [value, setValue] = useState("");
+
+   return (
+      <div className="p-4 bg-white/5 border border-white/5 rounded-xl">
+         <div className="flex justify-between items-start mb-2">
+            <span className="font-medium">{label}</span>
+            <span className={`text-xs px-2 py-0.5 rounded border ${
+               connected 
+               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+               : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+            }`}>
+               {connected ? "Connected" : "Not Connected"}
+            </span>
+         </div>
+         {isEditing ? (
+            <div className="flex gap-2">
+               <input 
+                  type="password" 
+                  autoFocus
+                  placeholder="Paste new key..."
+                  className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-1.5 text-sm text-white focus:border-violet-500/50 outline-none"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+               />
+               <button 
+                  onClick={() => { onSave(value); setIsEditing(false); }}
+                  className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded text-sm transition-colors"
+               >
+                  Save
+               </button>
+               <button 
+                  onClick={() => setIsEditing(false)}
+                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors"
+               >
+                  Cancel
+               </button>
+            </div>
+         ) : (
+            <div className="flex gap-2">
+               <input 
+                  type="password" 
+                  value={connected ? "........................" : ""} 
+                  disabled 
+                  className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-1.5 text-sm text-gray-500" 
+                  placeholder="Not configured"
+               />
+               <button 
+                  onClick={() => setIsEditing(true)}
+                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors"
+               >
+                  Edit
+               </button>
+            </div>
+         )}
+      </div>
    );
 }

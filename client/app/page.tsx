@@ -11,25 +11,13 @@ import {
 } from "lucide-react";
 
 export default function LandingPage() {
-  const [showLanding, setShowLanding] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowLanding(true);
-    }, 1500);
 
-    return () => clearTimeout(timer);
-  }, []);
+
 
   return (
     <div className="relative min-h-screen w-full bg-black font-sans text-white selection:bg-violet-500/30">
-      <AnimatePresence mode="wait">
-        {!showLanding ? (
-          <IntroAnimation key="intro" />
-        ) : (
-          <LandingContent key="landing" />
-        )}
-      </AnimatePresence>
+      <LandingContent key="landing" />
     </div>
   );
 }
@@ -38,12 +26,12 @@ function IntroAnimation() {
   return (
     <motion.div
       className="absolute inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
-      exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.8, ease: "easeInOut" } }}
+      exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.5, ease: "easeInOut" } }}
     >
-      <div className="relative w-[250vw] h-[250vh] origin-center rotate-[-15deg] flex flex-col justify-center">
+      <div className="relative w-[250vw] h-[250vh] origin-center rotate-[-30deg] flex flex-col justify-center">
         {/* Generates multiple rows of marquee text */}
-        {Array.from({ length: 4 }).map((_, i) => (
-          <MarqueeRow key={i} direction={i % 2 === 0 ? 1 : -1} speed={i % 2 === 0 ? 25 : 18} />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <MarqueeRow key={i} direction={i % 2 === 0 ? 1 : -1} speed={i % 2 === 0 ? 10 : 8} />
         ))}
       </div>
     </motion.div>
@@ -61,7 +49,7 @@ function MarqueeRow({ direction, speed }: { direction: number; speed: number }) 
       >
         {Array.from({ length: 20 }).map((_, i) => (
           <span key={i} className="mx-2">
-          THE WEEKND 
+          AKAZA 
           </span>
         ))}
       </motion.div>
@@ -75,7 +63,7 @@ function LandingContent() {
       className="relative w-full flex flex-col bg-black min-h-screen"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 1 }}
+      transition={{ duration: 0.5 }}
     >
       <Navbar />
       
@@ -86,7 +74,7 @@ function LandingContent() {
         <FeaturesSection />
         <WhySection />
         <ArchitectureSection />
-        <StackSection />
+        {/* <StackSection /> */}
       </div>
 
       <Footer />
@@ -149,7 +137,7 @@ function HeroSection() {
             className="text-5xl md:text-7xl font-semibold leading-[1.1] tracking-tight text-white"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
           >
             Understand Any <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">Codebase</span> in <br/>
@@ -261,7 +249,7 @@ function HowItWorksSection() {
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
         {steps.map((step, i) => (
           <div key={i} className="relative group p-6 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
-            <div className="absolute -top-6 left-6 text-6xl font-black text-white/5 select-none">{i + 1}</div>
+            <div className="absolute top-4 right-6 text-6xl font-black text-white/5 select-none">{i + 1}</div>
             <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400 mb-4 group-hover:scale-110 transition-transform">
               {step.icon}
             </div>
@@ -365,19 +353,19 @@ function ArchitectureSection() {
   );
 }
 
-function StackSection() {
-  const stack = ["Python", "FastAPI", "Pinecone", "OpenAI", "React", "TypeScript", "Tailwind"];
-  return (
-     <div className="py-12 border-t border-white/5">
-        <p className="text-center text-sm text-gray-500 mb-8 font-medium tracking-wide">POWERED BY MODERN STACK</p>
-        <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-           {stack.map((tech) => (
-              <span key={tech} className="text-xl font-bold text-white/40 hover:text-white transition-colors cursor-default">{tech}</span>
-           ))}
-        </div>
-     </div>
-  );
-}
+// function StackSection() {
+//   const stack = ["Python", "FastAPI", "Pinecone", "OpenAI", "React", "TypeScript", "Tailwind"];
+//   return (
+//      <div className="py-12 border-t border-white/5">
+//         <p className="text-center text-sm text-gray-500 mb-8 font-medium tracking-wide">POWERED BY MODERN STACK</p>
+//         <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+//            {stack.map((tech) => (
+//               <span key={tech} className="text-xl font-bold text-white/40 hover:text-white transition-colors cursor-default">{tech}</span>
+//            ))}
+//         </div>
+//      </div>
+//   );
+// }
 
 function Footer() {
   return (

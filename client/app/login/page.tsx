@@ -10,16 +10,10 @@ import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [showLanding, setShowLanding] = useState(false);
+
   const router = useRouter();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowLanding(true);
-    }, 1500);
 
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,37 +22,31 @@ export default function LoginPage() {
 
   return (
     <div className="relative h-screen w-full bg-[#1c1a23] overflow-hidden font-sans text-white scrollbar-hide">
-      <AnimatePresence mode="wait">
-        {!showLanding ? (
-          <IntroAnimation key="intro" />
-        ) : (
-          <LoginContent 
-            key="login" 
-            showPassword={showPassword} 
-            setShowPassword={setShowPassword} 
-            handleLogin={handleLogin}
-          />
-        )}
-      </AnimatePresence>
+      <LoginContent 
+        key="login" 
+        showPassword={showPassword} 
+        setShowPassword={setShowPassword} 
+        handleLogin={handleLogin}
+      />
     </div>
   );
 }
 
-function IntroAnimation() {
-  return (
-    <motion.div
-      className="fixed inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
-      exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.8, ease: "anticipate" } }}
-    >
-      <div className="relative w-[150vw] h-[150vh] origin-center rotate-[-60deg] flex flex-col justify-center">
-        {/* Generates multiple rows of marquee text */}
-        {Array.from({ length: 9 }).map((_, i) => (
-          <MarqueeRow key={i} direction={i % 2 === 0 ? 1 : -1} speed={i % 2 === 0 ? 25 : 18} />
-        ))}
-      </div>
-    </motion.div>
-  );
-}
+// function IntroAnimation() {
+//   return (
+//     <motion.div
+//       className="fixed inset-0 flex items-center justify-center bg-black z-50 overflow-hidden"
+//       exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.5, ease: "anticipate" } }}
+//     >
+//       <div className="relative w-[150vw] h-[150vh] origin-center rotate-[-60deg] flex flex-col justify-center">
+//         {/* Generates multiple rows of marquee text */}
+//         {Array.from({ length: 9 }).map((_, i) => (
+//           <MarqueeRow key={i} direction={i % 2 === 0 ? 1 : -1} speed={i % 2 === 0 ? 25 : 18} />
+//         ))}
+//       </div>
+//     </motion.div>
+//   );
+// }
 
 function MarqueeRow({ direction, speed }: { direction: number; speed: number }) {
   return (

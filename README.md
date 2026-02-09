@@ -45,7 +45,7 @@ This Q&A Bot is an AI-powered assistant designed to help developers query large 
 
 ## Tech Stack
 - **Backend**: Python (FastAPI or Flask)  
-- **Vector Database**: FAISS (local) or Pinecone (cloud)  
+- **Vector Database**: Pinecone (cloud)  
 - **LLM**: OpenAI API or Hugging Face Transformers  
 - **GitHub Integration**: GitHub REST/GraphQL API  
 - **Task Queue (Optional)**: Celery / Redis for background jobs  
@@ -59,17 +59,3 @@ This Q&A Bot is an AI-powered assistant designed to help developers query large 
 - Access to an LLM API key (OpenAI / Hugging Face)  
 - GitHub personal access token  
 - FAISS or Pinecone account  
-
-### Setup
-```bash
-# Clone repository
-git clone https://github.com/your-username/codebase-qa-bot.git
-cd codebase-qa-bot
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate   # Linux/Mac
-venv\Scripts\activate      # Windows
-
-# Install dependencies
-pip install -r requirements.txt
