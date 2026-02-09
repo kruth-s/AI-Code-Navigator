@@ -1,15 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { Send, User, Sparkles, Code2, Copy, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, User, Sparkles, Code2, Copy, Check, FolderGit2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRepository } from "@/lib/RepositoryContext";
+import Link from "next/link";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([
-    { role: 'assistant', content: 'Hello! I am Akaza. Connect a repository and ask me anything about your codebase.' }
-  ]);
+  const { selectedRepo, repositories } = useRepository();
+  const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Update welcome message based on selected repo
+  useEffect(() => {
+    if (selectedRepo) {
+      setMessages([
+        { 
+          role: 'assistant', 
+          content: `Hello! I'm Akaza. I'm ready to answer questions about **${selectedRepo.name}**. What would you like to know?` 
+        }
+      ]);
+    } else if (repositories.length > 0) {
+      setMessages([
+        { 
+          role: 'assistant', 
+          content: 'Hello! I am Akaza. You have repositories connected. Please select one from the Repositories page to start chatting.' 
+        }
+      ]);
+    } else {
+      setMessages([
+        { 
+          role: 'assistant', 
+          content: 'Hello! I am Akaza. Connect a repository and ask me anything about your codebase.' 
+        }
+      ]);
+    }
+  }, [selectedRepo, repositories]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +75,32 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)]">
+      {/* Selected Repository Banner */}
+      {selectedRepo && (
+        <div className="mb-4 p-4 bg-violet-500/10 border border-violet-500/20 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FolderGit2 className="w-5 h-5 text-violet-400" />
+            <div>
+              <p className="text-sm text-gray-400">Currently chatting about:</p>
+              <p className="font-semibold text-white">{selectedRepo.name}</p>
+            </div>
+          </div>
+          <Link 
+            href="/dashboard/repositories"
+            className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
+          >
+            Change repository →
+          </Link>
+        </div>
+      )}
+      
+      {!selectedRepo && repositories.length > 0 && (
+        <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          <p className="text-sm text-amber-200">
+            No repository selected. <Link href="/dashboard/repositories" className="text-amber-400 hover:text-amber-300 underline">Select a repository</Link> to start chatting.
+          </p>
+        </div>
+      )}
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto scrollbar-hide space-y-6 pr-4">
         {messages.map((msg, i) => (

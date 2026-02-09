@@ -3,41 +3,18 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { FolderGit2, Search, Plus, MoreVertical, GitCommit, Calendar, Clock, Github, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
-
-// const repositories = [
-//   { 
-//     id: 1, 
-//     name: "kruth-s/AI-Code-Navigator", 
-//     status: "Indexed", 
-//     lastSynced: "Just now", 
-//     size: "24 MB", 
-//     language: "TypeScript",
-//     branch: "main" 
-//   },
-//   ...
-// ];
-
+import { useRepository } from "@/lib/RepositoryContext";
+import { useRouter } from "next/navigation";
 
 export default function RepositoriesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [repositories, setRepositories] = useState<any[]>([]);
-
-  const fetchRepos = async () => {
-    try {
-        const res = await fetch('http://127.0.0.1:8000/api/repos');
-        if (res.ok) {
-            const data = await res.json();
-            setRepositories(data);
-        }
-    } catch (e) {
-        console.error("Failed to fetch repos", e);
-    }
-  };
+  const { repositories, fetchRepositories } = useRepository();
+  const router = useRouter();
 
   useEffect(() => {
-    fetchRepos();
+    fetchRepositories();
     // Poll every 5 seconds for status updates
-    const interval = setInterval(fetchRepos, 5000);
+    const interval = setInterval(fetchRepositories, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -89,12 +66,27 @@ export default function RepositoriesPage() {
 }
 
 function RepositoryCard({ repo, index }: { repo: any, index: number }) {
+  const router = useRouter();
+  const { setSelectedRepo } = useRepository();
+  
+  const handleClick = () => {
+    if (repo.status === 'Indexed') {
+      setSelectedRepo(repo);
+      router.push('/dashboard/chat');
+    }
+  };
+  
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="bg-[#16141c] border border-white/5 rounded-xl p-6 hover:border-violet-500/30 transition-all group"
+      onClick={handleClick}
+      className={`bg-[#16141c] border border-white/5 rounded-xl p-6 transition-all group ${
+        repo.status === 'Indexed' 
+          ? 'hover:border-violet-500/30 cursor-pointer hover:shadow-lg hover:shadow-violet-500/10' 
+          : ''
+      }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex gap-4">
@@ -115,11 +107,22 @@ function RepositoryCard({ repo, index }: { repo: any, index: number }) {
               <span className="flex items-center gap-1"><Github className="w-3.5 h-3.5" /> {repo.language}</span>
               <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {repo.lastSynced}</span>
             </div>
+            {repo.status === 'Indexed' && (
+              <p className="text-xs text-violet-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                Click to chat about this repository →
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                // Add delete or options functionality here
+              }}
+              className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors"
+            >
               <MoreVertical className="w-5 h-5" />
             </button>
         </div>

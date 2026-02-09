@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { RepositoryProvider } from "@/lib/RepositoryContext";
 
 export default function DashboardLayout({
   children,
@@ -23,6 +24,7 @@ export default function DashboardLayout({
   };
 
   return (
+    <RepositoryProvider>
     <div className="flex h-screen w-full bg-[#0f0f11] text-white font-sans overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 border-r border-white/5 bg-[#16141c] flex flex-col">
@@ -88,6 +90,7 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </RepositoryProvider>
   );
 }
 
