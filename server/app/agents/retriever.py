@@ -5,7 +5,7 @@ class RetrievalAgent(BaseAgent):
     def __init__(self, llm, tools: List[object]):
         super().__init__(name="Retrieval", tools=tools, llm=llm)
 
-    async def retrieve_context(self, queries: List[str]) -> dict:
+    async def retrieve_context(self, queries: List[str], repo_id: str = None) -> dict:
         context = []
         # Simple implementation: Loop through tools and call 'vector_search' if available
         # In a real agent, the LLM would decide which tool to call.
@@ -16,8 +16,8 @@ class RetrievalAgent(BaseAgent):
         if search_tool:
             for query in queries:
                 try:
-                    # Invoke the tool
-                    result = search_tool.invoke({"query": query})
+                    # Invoke the tool with repo_id
+                    result = search_tool.invoke({"query": query, "repo_id": repo_id})
                     context.append(str(result))
                 except Exception as e:
                     context.append(f"Error searching for {query}: {e}")

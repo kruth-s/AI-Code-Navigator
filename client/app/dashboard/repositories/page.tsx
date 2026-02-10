@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { FolderGit2, Search, Plus, MoreVertical, GitCommit, Calendar, Clock, Github, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FolderGit2, Search, Plus, MoreVertical, GitCommit, Calendar, Clock, Github, AlertCircle, CheckCircle2, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRepository } from "@/lib/RepositoryContext";
 import { useRouter } from "next/navigation";
@@ -25,15 +25,42 @@ export default function RepositoriesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Repositories</h1>
-          <p className="text-gray-400">Manage your connected codebases and indexing status.</p>
+          <p className="text-gray-400">
+            Manage your connected codebases ({repositories.filter(r => r.status === 'Indexed').length}/5 indexed)
+          </p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-violet-500/20"
-        >
-          <Plus className="w-4 h-4" />
-          Add Repository
-        </button>
+        <div className="flex gap-2">
+          {repositories.filter(r => r.status === 'Indexed').length >= 5 && (
+            <button 
+              onClick={async () => {
+                if (confirm('Clear all repositories? This will delete all indexed data.')) {
+                  try {
+                    await fetch('http://127.0.0.1:8000/api/repos/clear-all', { method: 'POST' });
+                    await fetchRepositories();
+                  } catch (error) {
+                    alert('Failed to clear repositories');
+                  }
+                }
+              }}
+              className="flex items-center gap-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear All
+            </button>
+          )}
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            disabled={repositories.filter(r => r.status === 'Indexed').length >= 5}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors shadow-lg ${
+              repositories.filter(r => r.status === 'Indexed').length >= 5
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-violet-600 hover:bg-violet-700 text-white shadow-violet-500/20'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            Add Repository
+          </button>
+        </div>
       </div>
 
       {/* Filter/Search */}
@@ -161,43 +188,98 @@ function Badge({ status }: { status: string }) {
 function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [statusMessages, setStatusMessages] = useState<string[]>([]);
+  const [repoId, setRepoId] = useState<string | null>(null);
+  const { fetchRepositories } = useRepository();
+
+  // Poll for status updates
+  useEffect(() => {
+    if (!repoId || !loading) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/repos');
+        if (res.ok) {
+          const repos = await res.json();
+          const repo = repos.find((r: any) => r.id === repoId);
+          
+          if (repo) {
+            // Add new status message if it's different from the last one
+            if (repo.status_message && (!statusMessages.length || statusMessages[statusMessages.length - 1] !== repo.status_message)) {
+              setStatusMessages(prev => [...prev, repo.status_message]);
+            }
+            
+            // Check if ingestion is complete
+            if (repo.status === 'Indexed' || repo.status === 'Error') {
+              setLoading(false);
+              clearInterval(interval);
+              
+              // Wait a bit to show final message, then close
+              setTimeout(() => {
+                onClose();
+                setUrl("");
+                setStatusMessages([]);
+                setRepoId(null);
+                fetchRepositories();
+              }, 2000);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error polling status:', e);
+      }
+    }, 1000); // Poll every second
+
+    return () => clearInterval(interval);
+  }, [repoId, loading, statusMessages, onClose, fetchRepositories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
     
     setLoading(true);
+    setStatusMessages([]);
+    
     try {
       const res = await fetch('http://127.0.0.1:8000/api/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_url: url })
       });
+      
       if (res.ok) {
-        alert("Ingestion started! Check background logs.");
-        onClose();
-        setUrl("");
-        // Trigger generic refresh if moved to context, but poll will catch it
+        const data = await res.json();
+        setRepoId(data.repo_id);
+        setStatusMessages([data.message]);
       } else {
-        alert("Failed to start ingestion.");
+        const errorData = await res.json();
+        alert(errorData.detail || "Failed to start ingestion.");
+        setLoading(false);
       }
     } catch (e) {
       alert("Error connecting to backend.");
-    } finally {
       setLoading(false);
     }
   };
 
-  return (
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+      setUrl("");
+      setStatusMessages([]);
+      setRepoId(null);
+    }
+  };
 
-  <AnimatePresence>
+  return (
+    <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
           <motion.div 
@@ -207,39 +289,59 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
             className="relative w-full max-w-lg bg-[#16141c] border border-white/10 rounded-2xl p-6 shadow-2xl"
           >
             <h2 className="text-xl font-bold mb-4">Connect Repository</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1.5">Repository URL</label>
-                <div className="relative">
-                  <Github className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-                  <input 
-                    autoFocus
-                    type="url" 
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://github.com/username/repo"
-                    className="w-full bg-[#0f0f11] border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-violet-500/50 transition-all placeholder:text-gray-600"
-                  />
+            
+            {!loading ? (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1.5">Repository URL</label>
+                  <div className="relative">
+                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+                    <input 
+                      autoFocus
+                      type="url" 
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="https://github.com/username/repo"
+                      className="w-full bg-[#0f0f11] border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-violet-500/50 transition-all placeholder:text-gray-600"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button 
+                    type="button" 
+                    onClick={handleClose}
+                    className="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    Connect
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-[#0f0f11] border border-white/10 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  <div className="space-y-1 font-mono text-sm">
+                    {statusMessages.map((msg, i) => (
+                      <div key={i} className="text-gray-300 whitespace-pre-wrap">
+                        {msg}
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 text-violet-400 mt-2">
+                      <div className="w-3 h-3 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                      <span>Processing...</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center text-sm text-gray-400">
+                  Please wait while we index your repository
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button 
-                  type="button" 
-                  onClick={onClose}
-                  className="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  {loading ? 'Ingesting...' : 'Connect'}
-                </button>
-              </div>
-            </form>
+            )}
           </motion.div>
         </div>
       )}

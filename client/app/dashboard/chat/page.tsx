@@ -47,15 +47,31 @@ export default function ChatPage() {
     setInput("");
     setLoading(true);
 
+    if (!selectedRepo) {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "Please select a repository from the Repositories page first." 
+      }]);
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log('Selected Repository:', selectedRepo);
+      console.log('Sending repo_id:', selectedRepo?.id);
+      
       const response = await fetch('http://127.0.0.1:8000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userInput }),
+        body: JSON.stringify({ 
+          query: userInput,
+          repo_id: selectedRepo.id  // Send repo_id to backend
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch response');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to fetch response');
       }
 
       const data = await response.json();
@@ -63,10 +79,10 @@ export default function ChatPage() {
         role: 'assistant', 
         content: data.answer 
       }]);
-    } catch (error) {
+    } catch (error: any) {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: "Sorry, I encountered an error connecting to the server. Please ensure the backend is running." 
+        content: error.message || "Sorry, I encountered an error connecting to the server. Please ensure the backend is running." 
       }]);
     } finally {
       setLoading(false);

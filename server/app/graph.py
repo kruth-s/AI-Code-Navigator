@@ -24,7 +24,8 @@ async def planning_node(state: AgentState):
 async def retrieval_node(state: AgentState):
     # Depending on plan, decide what to look up
     # This is a simplification
-    context = await retriever.retrieve_context([state["input"]])
+    repo_id = state.get("repo_id")  # Get repo_id from state
+    context = await retriever.retrieve_context([state["input"]], repo_id=repo_id)
     return {"context": context["context"]}
 
 async def github_node(state: AgentState):

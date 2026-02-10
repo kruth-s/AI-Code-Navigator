@@ -22,17 +22,30 @@ except Exception as e:
     print(f"Pinecone init error: {e}")
 
 @tool
-def vector_search(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+def vector_search(query: str, repo_id: str = None, top_k: int = 5) -> List[Dict[str, Any]]:
     """
     Search for relevant code chunks using Pinecone vector search.
     Returns a list of matches with file paths and text snippets.
+    Args:
+        query: The search query
+        repo_id: The repository ID to search in (namespace)
+        top_k: Number of results to return
     """
     if not index:
         return [{"error": "Pinecone not initialized or invalid key."}]
     
+    if not repo_id:
+        return [{"error": "Please specify a repo_id to search in"}]
+    
     try:
         vector = embeddings.embed_query(query)
-        results = index.query(vector=vector, top_k=top_k, include_metadata=True)
+        # Query specific namespace for this repo
+        results = index.query(
+            vector=vector, 
+            top_k=top_k, 
+            include_metadata=True,
+            namespace=repo_id  # Search only in this repo's namespace
+        )
         
         matches = []
         for match in results.matches:
