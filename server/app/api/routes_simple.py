@@ -2,12 +2,31 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
+import json
 from datetime import datetime
 
 router = APIRouter()
 
-# In-memory storage for repository status (in production, use a database)
-repositories_db: Dict[str, Dict[str, Any]] = {}
+# File-based storage for repository status
+REPOS_FILE = os.path.join(os.getcwd(), "repositories.json")
+
+def load_repos():
+    if os.path.exists(REPOS_FILE):
+        try:
+            with open(REPOS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+repositories_db: Dict[str, Dict[str, Any]] = load_repos()
+
+def save_repos():
+    try:
+        with open(REPOS_FILE, "w") as f:
+            json.dump(repositories_db, f, indent=4)
+    except Exception as e:
+        print(f"Error saving repos: {e}")
 
 # Request/Response Models
 class ChatRequest(BaseModel):
@@ -124,6 +143,7 @@ async def ingest_repository(request: IngestRequest, background_tasks: Background
             "progress": 0,
             "status_message": f"Starting ingestion for {repo_name}..."
         }
+        save_repos()
         
         # Start ingestion in background
         background_tasks.add_task(ingest_repo_background, repo_id, request.repo_url)
@@ -198,6 +218,7 @@ async def ingest_repo_background(repo_id: str, repo_url: str):
             repositories_db[repo_id]["status"] = "Error"
             repositories_db[repo_id]["status_message"] = "No supported files found in repository"
             repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            save_repos()
             return
         
         # Chunk documents
@@ -262,12 +283,14 @@ async def ingest_repo_background(repo_id: str, repo_url: str):
         repositories_db[repo_id]["progress"] = 100
         repositories_db[repo_id]["status_message"] = f"\nRepository '{repo_name}' ingested successfully!"
         repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_repos()
         
     except Exception as e:
         print(f"Error ingesting repository: {e}")
         repositories_db[repo_id]["status"] = "Error"
         repositories_db[repo_id]["status_message"] = f"Error: {str(e)}"
         repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_repos()
 
 @router.delete("/api/repos/{repo_id}")
 async def delete_repository(repo_id: str):
@@ -290,6 +313,7 @@ async def delete_repository(repo_id: str):
         
         # Delete from in-memory DB
         del repositories_db[repo_id]
+        save_repos()
         
         return {"status": "success", "message": "Repository deleted"}
     except Exception as e:
@@ -316,6 +340,7 @@ async def clear_all_repositories():
         
         # Clear in-memory DB
         repositories_db.clear()
+        save_repos()
         
         return {"status": "success", "message": "All repositories cleared"}
     except Exception as e:

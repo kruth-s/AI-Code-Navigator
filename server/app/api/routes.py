@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import asyncio
 import os
+import json
 from datetime import datetime
 from ..graph import app_graph
 from ..services.ingestion import IngestionService
@@ -12,8 +13,26 @@ from ..core.config import settings
 
 router = APIRouter()
 
-# In-memory storage for repository status (in production, use a database)
-repositories_db: Dict[str, Dict[str, Any]] = {}
+# File-based storage for repository status
+REPOS_FILE = os.path.join(os.getcwd(), "repositories.json")
+
+def load_repos():
+    if os.path.exists(REPOS_FILE):
+        try:
+            with open(REPOS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+repositories_db: Dict[str, Dict[str, Any]] = load_repos()
+
+def save_repos():
+    try:
+        with open(REPOS_FILE, "w") as f:
+            json.dump(repositories_db, f, indent=4)
+    except Exception as e:
+        print(f"Error saving repos: {e}")
 
 # Shared embeddings and Pinecone client
 embeddings = None
@@ -120,6 +139,7 @@ async def ingest_repository(request: IngestRequest, background_tasks: Background
             "language": "Python",
             "progress": 0
         }
+        save_repos()
         
         # Start ingestion in background
         background_tasks.add_task(ingest_repo_background, repo_id, request.repo_url)
@@ -198,6 +218,7 @@ async def ingest_repo_background(repo_id: str, repo_url: str):
         if not chunks_text:
             repositories_db[repo_id]["status"] = "Error"
             repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            save_repos()
             return
         
         # Generate embeddings
@@ -228,11 +249,13 @@ async def ingest_repo_background(repo_id: str, repo_url: str):
         repositories_db[repo_id]["status"] = "Indexed"
         repositories_db[repo_id]["progress"] = 100
         repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_repos()
         
     except Exception as e:
         print(f"Error ingesting repository: {e}")
         repositories_db[repo_id]["status"] = "Error"
         repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_repos()
 
 @router.delete("/api/repos/{repo_id}")
 async def delete_repository(repo_id: str):
@@ -243,6 +266,7 @@ async def delete_repository(repo_id: str):
         raise HTTPException(status_code=404, detail="Repository not found")
     
     del repositories_db[repo_id]
+    save_repos()
     return {"status": "success", "message": "Repository deleted"}
 
 @router.get("/api/health")

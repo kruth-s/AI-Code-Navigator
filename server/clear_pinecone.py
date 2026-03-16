@@ -17,8 +17,8 @@ def clear_pinecone():
     PINECONE_INDEX = os.getenv("PINECONE_INDEX", "codebase")
     
     if not PINECONE_API_KEY:
-        print("❌ Error: PINECONE_API_KEY not found in environment variables")
-        print("   Make sure you have a .env file with PINECONE_API_KEY")
+        print("Error: PINECONE_API_KEY not found in environment variables")
+        print("Make sure you have a .env file with PINECONE_API_KEY")
         return
     
     print("🔧 Connecting to Pinecone...")
