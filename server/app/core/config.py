@@ -8,8 +8,10 @@ class Settings(BaseSettings):
     PINECONE_ENV: Optional[str] = "gcp-starter"
     PINECONE_INDEX: Optional[str] = "akaza.codebase"
     GITHUB_TOKEN: Optional[str] = None
+    GITHUB_ACCESS_TOKEN: Optional[str] = None
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()

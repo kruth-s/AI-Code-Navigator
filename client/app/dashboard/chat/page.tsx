@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import "streamdown/styles.css";
+import { Streamdown } from "streamdown";
 import { Send, User, Sparkles, Code2, Copy, Check, FolderGit2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRepository } from "@/lib/RepositoryContext";
@@ -137,18 +139,14 @@ export default function ChatPage() {
                 ? 'bg-[#2b2934] text-white border border-white/5' 
                 : 'bg-transparent text-gray-300'
             }`}>
-              <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                  {msg.content.split('```').map((part, index) => {
-                      if (index % 2 === 1) {
-                          // Very simple code block handling
-                          return (
-                              <div key={index} className="my-2 p-3 bg-black/50 rounded-lg border border-white/10 font-mono text-xs overflow-x-auto text-violet-200">
-                                  {part}
-                              </div>
-                          );
-                      }
-                      return <span key={index}>{part}</span>;
-                  })}
+              <div className="font-sans text-sm leading-relaxed prose prose-invert max-w-none">
+                {msg.role === 'assistant' ? (
+                  <Streamdown isAnimating={loading && i === messages.length - 1} animated>
+                    {msg.content}
+                  </Streamdown>
+                ) : (
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                )}
               </div>
             </div>
 
@@ -164,17 +162,32 @@ export default function ChatPage() {
       {/* Input Area */}
       <div className="pt-4 mt-auto">
         <form onSubmit={handleSend} className="relative">
-          <input 
-            type="text" 
+          <textarea 
+            ref={(el) => {
+              if (el) {
+                el.style.height = '56px';
+                const scrollHeight = el.scrollHeight;
+                el.style.height = scrollHeight > 150 ? '150px' : Math.max(56, scrollHeight) + 'px';
+              }
+            }}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend(e);
+              }
+            }}
             placeholder="Ask a question about your connected repos..." 
-            className="w-full h-14 bg-[#16141c] border border-white/10 rounded-xl pl-5 pr-14 text-white placeholder:text-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all font-sans"
+            className="w-full min-h-14 max-h-37.5 bg-[#16141c] border border-white/10 rounded-xl pl-5 pr-14 py-4 text-white placeholder:text-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-colors font-sans resize-none scrollbar-hide leading-normal"
+            rows={1}
           />
           <button 
             type="submit"
-            disabled={loading}
-            className={`absolute right-2 top-2 h-10 w-10 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center justify-center transition-colors shadow-lg shadow-violet-500/20 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={loading || !input.trim()}
+            className={`absolute right-2 bottom-2 h-10 w-10 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center justify-center transition-colors shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {loading ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
           </button>

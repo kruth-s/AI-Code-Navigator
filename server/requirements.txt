@@ -6,7 +6,7 @@ pydantic-settings
 langchain
 langgraph
 langchain-groq
-pinecone-client
+pinecone
 httpx
 mcp
 langchain-community

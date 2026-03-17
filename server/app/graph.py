@@ -29,12 +29,36 @@ async def retrieval_node(state: AgentState):
     return {"context": context["context"]}
 
 async def github_node(state: AgentState):
-    # Only if relevant - for now assume always execute if part of plan?
-    # Or separate execution path.
-    # To keep simple, we'll just check if query is related to github
-    if "issue" in state["input"]:
-        # Mock issues for now
-        return {"github_data": ["Found issue #123"]}
+    """Fetch GitHub issues if the user's query is related to issues/contributions."""
+    query_lower = state["input"].lower()
+    issue_keywords = ["issue", "issues", "bug", "bugs", "contribute", "contribution",
+                      "help wanted", "good first issue", "solve", "fix", "open issue",
+                      "beginner", "starter"]
+    
+    # Check if the query is related to issues
+    if any(kw in query_lower for kw in issue_keywords):
+        repo_url = state.get("repo_url", "")
+        if repo_url:
+            # Use the search_github_issues tool
+            search_tool = next((t for t in tools if t.name == "search_github_issues"), None)
+            if search_tool:
+                try:
+                    issues = search_tool.invoke({"repo_url": repo_url})
+                    if issues and not any("error" in str(i) for i in issues):
+                        # Format issues as readable context for the LLM
+                        formatted = []
+                        for issue in issues:
+                            labels_str = ", ".join(issue.get("labels", [])) if issue.get("labels") else "none"
+                            formatted.append(
+                                f"- Issue #{issue['number']}: {issue['title']} "
+                                f"(labels: {labels_str}, by: {issue.get('user', 'unknown')}, "
+                                f"url: {issue.get('html_url', '')})"
+                            )
+                        issues_text = f"Open GitHub Issues ({len(issues)} found):\n" + "\n".join(formatted)
+                        return {"github_data": [issues_text]}
+                except Exception as e:
+                    return {"github_data": [f"Error fetching issues: {str(e)}"]}
+    
     return {"github_data": []}
 
 async def reasoning_node(state: AgentState):

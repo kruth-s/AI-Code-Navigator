@@ -116,10 +116,56 @@ def search_code_fs(query: str) -> List[str]:
     return matches
 
 @tool
-def search_github_issues(query: str) -> List[Dict[str, Any]]:
-    """Search GitHub issues."""
-    # Mock for now
-    return []
+def search_github_issues(repo_url: str) -> List[Dict[str, Any]]:
+    """
+    Fetch open GitHub issues for a repository.
+    Args:
+        repo_url: The GitHub repository URL (e.g. https://github.com/owner/repo)
+    Returns:
+        A list of open issues with number, title, labels, user, and URL.
+    """
+    import re
+    import httpx
+
+    match = re.search(r"github\.com/([^/]+)/([^/]+)", repo_url)
+    if not match:
+        return [{"error": "Not a valid GitHub repository URL"}]
+
+    owner = match.group(1)
+    repo_name = match.group(2).replace(".git", "")
+
+    try:
+        headers = {"Accept": "application/vnd.github+json"}
+        token = settings.GITHUB_ACCESS_TOKEN or settings.GITHUB_TOKEN
+        if token and len(token) > 10 and not token.startswith("your_"):
+            headers["Authorization"] = f"Bearer {token}"
+
+        response = httpx.get(
+            f"https://api.github.com/repos/{owner}/{repo_name}/issues",
+            params={"state": "open", "per_page": 15},
+            headers=headers,
+            timeout=15.0
+        )
+
+        if response.status_code != 200:
+            return [{"error": f"GitHub API returned {response.status_code}"}]
+
+        issues = []
+        for issue in response.json():
+            if "pull_request" in issue:
+                continue
+            issues.append({
+                "number": issue["number"],
+                "title": issue["title"],
+                "labels": [l["name"] for l in issue.get("labels", [])],
+                "user": issue["user"]["login"] if issue.get("user") else "unknown",
+                "html_url": issue["html_url"],
+                "body": (issue.get("body") or "")[:150]
+            })
+
+        return issues
+    except Exception as e:
+        return [{"error": f"Failed to fetch issues: {str(e)}"}]
 
 @tool
 def get_pr_diff(pr_number: int) -> str:

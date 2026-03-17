@@ -3,7 +3,7 @@
 import { 
   Terminal, LayoutDashboard, Settings, 
   LogOut, Plus, Search, Bell, Github,
-  FolderGit2, MessageSquare
+  FolderGit2, MessageSquare, CircleDot
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -39,6 +39,7 @@ export default function DashboardLayout({
           <NavItem href="/dashboard" icon={<LayoutDashboard className="w-5 h-5" />} label="Overview" active={pathname === "/dashboard"} />
           <NavItem href="/dashboard/chat" icon={<MessageSquare className="w-5 h-5" />} label="Chat" active={pathname === "/dashboard/chat"} />
           <NavItem href="/dashboard/repositories" icon={<FolderGit2 className="w-5 h-5" />} label="Repositories" active={pathname === "/dashboard/repositories"} />
+          <NavItem href="/dashboard/issues" icon={<CircleDot className="w-5 h-5" />} label="Issues" active={pathname === "/dashboard/issues"} />
           <NavItem href="/dashboard/settings" icon={<Settings className="w-5 h-5" />} label="Settings" active={pathname === "/dashboard/settings"} />
         </nav>
 
@@ -64,6 +65,7 @@ export default function DashboardLayout({
                {pathname === "/dashboard" && "Overview"}
                {pathname === "/dashboard/chat" && "Chat"}
                {pathname === "/dashboard/repositories" && "Repositories"}
+               {pathname === "/dashboard/issues" && "Issues"}
                {pathname === "/dashboard/settings" && "Settings"}
              </span>
           </div>

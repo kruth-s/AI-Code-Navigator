@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
 import json
+import re
+import httpx
 from datetime import datetime
 
 router = APIRouter()
@@ -78,9 +80,11 @@ async def chat(request: ChatRequest):
         from ..graph import app_graph
         
         # Prepare initial state for the agent graph with repo_id
+        repo_url = repositories_db[request.repo_id].get("url", "")
         initial_state = {
             "input": request.query,
             "repo_id": request.repo_id,  # Pass repo_id to graph
+            "repo_url": repo_url,  # Pass repo URL for GitHub API calls
             "context": [],
             "github_data": [],
             "messages": [],
@@ -369,6 +373,73 @@ async def update_settings(settings: Dict[str, str]):
             os.environ[key] = value
     
     return {"status": "success", "message": "Settings updated"}
+
+@router.get("/api/repos/{repo_id}/issues")
+async def get_repo_issues(repo_id: str):
+    """
+    Fetch open issues from GitHub for a given repository
+    """
+    if repo_id not in repositories_db:
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    repo = repositories_db[repo_id]
+    repo_url = repo.get("url", "")
+    
+    # Extract owner/repo from GitHub URL
+    match = re.search(r"github\.com/([^/]+)/([^/]+)", repo_url)
+    if not match:
+        raise HTTPException(status_code=400, detail="Not a valid GitHub repository URL")
+    
+    owner = match.group(1)
+    repo_name = match.group(2).replace(".git", "")
+    
+    try:
+        from ..core.config import settings
+        
+        headers = {"Accept": "application/vnd.github+json"}
+        token = settings.GITHUB_ACCESS_TOKEN or os.getenv("GITHUB_ACCESS_TOKEN")
+        if token and len(token) > 10 and not token.startswith("your_"):
+            headers["Authorization"] = f"Bearer {token}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.github.com/repos/{owner}/{repo_name}/issues",
+                params={"state": "open", "per_page": 30},
+                headers=headers,
+                timeout=15.0
+            )
+        
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"GitHub API error: {response.text}"
+            )
+        
+        issues_raw = response.json()
+        
+        # Filter out pull requests (GitHub API returns PRs as issues too)
+        issues = []
+        for issue in issues_raw:
+            if "pull_request" in issue:
+                continue
+            issues.append({
+                "number": issue["number"],
+                "title": issue["title"],
+                "state": issue["state"],
+                "labels": [{"name": l["name"], "color": l.get("color", "333333")} for l in issue.get("labels", [])],
+                "created_at": issue["created_at"],
+                "html_url": issue["html_url"],
+                "user": issue["user"]["login"] if issue.get("user") else "unknown",
+                "comments": issue.get("comments", 0),
+                "body": (issue.get("body") or "")[:200]
+            })
+        
+        return {"issues": issues, "repo": f"{owner}/{repo_name}"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching issues: {str(e)}")
 
 @router.get("/api/health")
 async def health_check():
