@@ -13,6 +13,7 @@ class ReasoningAgent(BaseAgent):
         Context: {context}
         
         Answer based on the context provided.
+        When mentioning GitHub issues, you MUST provide a markdown link to the issue using its url from the context (e.g., [Issue #123](https://github.com/...)).
         """
         
         response = await self.ainvoke(prompt)

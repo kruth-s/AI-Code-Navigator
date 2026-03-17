@@ -67,7 +67,8 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
   // Fetch repositories from backend
   const fetchRepositories = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/repos');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiUrl}/api/repos`);
       if (res.ok) {
         const data = await res.json();
         setRepositories(data);

@@ -35,7 +35,7 @@ export default function RepositoriesPage() {
               onClick={async () => {
                 if (confirm('Clear all repositories? This will delete all indexed data.')) {
                   try {
-                    await fetch('http://127.0.0.1:8000/api/repos/clear-all', { method: 'POST' });
+                    await fetch('http://localhost:8000/api/repos/clear-all', { method: 'POST' });
                     await fetchRepositories();
                   } catch (error) {
                     alert('Failed to clear repositories');
@@ -198,7 +198,7 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/repos');
+        const res = await fetch('http://localhost:8000/api/repos');
         if (res.ok) {
           const repos = await res.json();
           const repo = repos.find((r: any) => r.id === repoId);
@@ -241,7 +241,7 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
     setStatusMessages([]);
     
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/ingest', {
+      const res = await fetch('http://localhost:8000/api/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_url: url })

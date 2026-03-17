@@ -32,7 +32,7 @@ export default function IssuesPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/repos/${selectedRepo.id}/issues`);
+        const res = await fetch(`http://localhost:8000/api/repos/${selectedRepo.id}/issues`);
         if (res.ok) {
           const data = await res.json();
           setIssues(data.issues);

@@ -124,7 +124,7 @@ async def get_repositories():
         active_namespaces = set(stats.namespaces.keys()) if stats.namespaces else set()
         
         # Sync logic
-        repos_changed = false
+        repos_changed = False
         
         # 1. Remove repos that say they are "Indexed" but are missing from Pinecone
         repos_to_delete = []
@@ -211,7 +211,7 @@ async def ingest_repository(request: IngestRequest, background_tasks: Background
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error starting ingestion: {str(e)}")
 
-async def ingest_repo_background(repo_id: str, repo_url: str):
+def ingest_repo_background(repo_id: str, repo_url: str):
     """
     Background task to ingest repository with detailed status updates
     """
@@ -239,7 +239,11 @@ async def ingest_repo_background(repo_id: str, repo_url: str):
                 repo.remotes.origin.pull()
             except:
                 repositories_db[repo_id]["status_message"] = "Pull failed, re-cloning..."
-                shutil.rmtree(repo_dir)
+                import stat
+                def on_rm_error(func, path, exc_info):
+                    os.chmod(path, stat.S_IWRITE)
+                    func(path)
+                shutil.rmtree(repo_dir, onerror=on_rm_error)
                 Repo.clone_from(repo_url, repo_dir)
         else:
             repositories_db[repo_id]["status_message"] = f"Cloning to {repo_dir}..."

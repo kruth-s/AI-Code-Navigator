@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/settings')
+    fetch('http://localhost:8000/api/settings')
       .then(res => res.json())
       .then(data => {
         setSettings(data);
@@ -24,7 +24,7 @@ export default function SettingsPage() {
 
   const handleUpdate = async (key: string, value: string) => {
     try {
-       await fetch('http://127.0.0.1:8000/api/settings', {
+       await fetch('http://localhost:8000/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ [key]: value })
