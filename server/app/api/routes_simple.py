@@ -109,8 +109,57 @@ async def chat(request: ChatRequest):
 @router.get("/api/repos", response_model=List[Repository])
 async def get_repositories():
     """
-    Get list of all repositories
+    Get list of all repositories, synced with live Pinecone namespaces
     """
+    try:
+        from pinecone import Pinecone
+        from ..core.config import settings
+        
+        # Connect to Pinecone
+        pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+        index = pc.Index(settings.PINECONE_INDEX)
+        
+        # Get actual namespaces in Pinecone
+        stats = index.describe_index_stats()
+        active_namespaces = set(stats.namespaces.keys()) if stats.namespaces else set()
+        
+        # Sync logic
+        repos_changed = false
+        
+        # 1. Remove repos that say they are "Indexed" but are missing from Pinecone
+        repos_to_delete = []
+        for repo_id, repo in repositories_db.items():
+            if repo["status"] == "Indexed" and repo_id not in active_namespaces:
+                repos_to_delete.append(repo_id)
+                
+        for repo_id in repos_to_delete:
+            del repositories_db[repo_id]
+            repos_changed = True
+            
+        # 2. Add repos that are in Pinecone but missing from local DB
+        for ns in active_namespaces:
+            if ns not in repositories_db:
+                repositories_db[ns] = {
+                    "id": ns,
+                    "name": ns.replace("-", " ").title(),
+                    "url": f"https://github.com/unknown/{ns}",
+                    "status": "Indexed",
+                    "lastSynced": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "branch": "main",
+                    "language": "Unknown",
+                    "progress": 100,
+                    "status_message": "Discovered in Pinecone"
+                }
+                repos_changed = True
+                
+        # Save if we made changes
+        if repos_changed:
+            save_repos()
+            
+    except Exception as e:
+        print(f"Warning: Could not sync with Pinecone: {e}")
+        # Proceed with local state if Pinecone check fails
+    
     return list(repositories_db.values())
 
 @router.post("/api/ingest", response_model=IngestResponse)
