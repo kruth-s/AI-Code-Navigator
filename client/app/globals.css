@@ -1,19 +1,151 @@
 @import "tailwindcss";
 @source "../node_modules/streamdown/dist/*.js";
 
-:root {
-  --background: #1c1a23;
-  --foreground: #ffffff;
+/* ═══════════════════════════════════════════
+   THEME: Classic (Deep Dark — current default)
+   ═══════════════════════════════════════════ */
+:root,
+[data-theme="classic"] {
+  --bg-primary: #0f0f11;
+  --bg-secondary: #16141c;
+  --bg-tertiary: #1c1a23;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(139, 92, 246, 0.1);
+
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --text-accent: #a78bfa;
+
+  --border-primary: rgba(255, 255, 255, 0.05);
+  --border-secondary: rgba(255, 255, 255, 0.1);
+  --border-accent: rgba(139, 92, 246, 0.2);
+
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-glow: rgba(139, 92, 246, 0.2);
+
+  --input-bg: #1c1a23;
+  --card-bg: #16141c;
+  --dropdown-bg: #16141c;
+  --header-bg: rgba(22, 20, 28, 0.5);
+
+  --badge-success-bg: rgba(16, 185, 129, 0.1);
+  --badge-success-text: #34d399;
+  --badge-success-border: rgba(16, 185, 129, 0.2);
+
+  --scrollbar-bg: transparent;
+
+  --shadow-color: rgba(0, 0, 0, 0.5);
+
+  --prose-invert: prose-invert;
 }
 
+/* ═══════════════════════════════════════════
+   THEME: Light
+   ═══════════════════════════════════════════ */
+[data-theme="light"] {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f2;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(139, 92, 246, 0.08);
+
+  --text-primary: #1a1a2e;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-accent: #7c3aed;
+
+  --border-primary: rgba(0, 0, 0, 0.08);
+  --border-secondary: rgba(0, 0, 0, 0.12);
+  --border-accent: rgba(139, 92, 246, 0.3);
+
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-glow: rgba(139, 92, 246, 0.15);
+
+  --input-bg: #f0f0f2;
+  --card-bg: #ffffff;
+  --dropdown-bg: #ffffff;
+  --header-bg: rgba(255, 255, 255, 0.8);
+
+  --badge-success-bg: rgba(16, 185, 129, 0.1);
+  --badge-success-text: #059669;
+  --badge-success-border: rgba(16, 185, 129, 0.2);
+
+  --scrollbar-bg: transparent;
+
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ═══════════════════════════════════════════
+   THEME: Nord (Professional blue-gray)
+   ═══════════════════════════════════════════ */
+[data-theme="nord"] {
+  --bg-primary: #2e3440;
+  --bg-secondary: #3b4252;
+  --bg-tertiary: #434c5e;
+  --bg-hover: rgba(216, 222, 233, 0.08);
+  --bg-active: rgba(136, 192, 208, 0.15);
+
+  --text-primary: #eceff4;
+  --text-secondary: #d8dee9;
+  --text-muted: #81a1c1;
+  --text-accent: #88c0d0;
+
+  --border-primary: rgba(216, 222, 233, 0.08);
+  --border-secondary: rgba(216, 222, 233, 0.15);
+  --border-accent: rgba(136, 192, 208, 0.3);
+
+  --accent: #5e81ac;
+  --accent-hover: #81a1c1;
+  --accent-glow: rgba(94, 129, 172, 0.25);
+
+  --input-bg: #434c5e;
+  --card-bg: #3b4252;
+  --dropdown-bg: #3b4252;
+  --header-bg: rgba(59, 66, 82, 0.7);
+
+  --badge-success-bg: rgba(163, 190, 140, 0.15);
+  --badge-success-text: #a3be8c;
+  --badge-success-border: rgba(163, 190, 140, 0.25);
+
+  --scrollbar-bg: transparent;
+
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL STYLES
+   ═══════════════════════════════════════════ */
 @theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions on theme change */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease, box-shadow 0.3s ease;
+}
+
+/* Exclude animation-related transitions from theme transition */
+.no-theme-transition,
+.no-theme-transition *,
+input,
+textarea,
+button {
+  transition: none;
+}
+
+/* Re-enable intentional transitions on interactive elements */
+button, a, input, textarea, select {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 .scrollbar-hide {
@@ -29,4 +161,14 @@ body {
   width: 0 !important;
   height: 0 !important;
   background: transparent !important;
+}
+
+/* Light theme specific overrides for prose */
+[data-theme="light"] .prose {
+  --tw-prose-body: #374151;
+  --tw-prose-headings: #1a1a2e;
+  --tw-prose-links: #7c3aed;
+  --tw-prose-code: #1a1a2e;
+  --tw-prose-pre-bg: #f0f0f2;
+  --tw-prose-pre-code: #1a1a2e;
 }

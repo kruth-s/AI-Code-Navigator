@@ -70,16 +70,17 @@ export default function IssuesPage() {
   if (!selectedRepo) {
     return (
       <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-          <FolderGit2 className="w-8 h-8 text-gray-500" />
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border-secondary)' }}>
+          <FolderGit2 className="w-8 h-8" style={{ color: 'var(--text-muted)' }} />
         </div>
-        <h2 className="text-xl font-semibold mb-2">No Repository Selected</h2>
-        <p className="text-gray-400 mb-6 max-w-md">
+        <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No Repository Selected</h2>
+        <p className="mb-6 max-w-md" style={{ color: 'var(--text-secondary)' }}>
           Select an indexed repository from the Repositories page to view its open issues.
         </p>
         <Link
           href="/dashboard/repositories"
-          className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          className="text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          style={{ backgroundColor: 'var(--accent)' }}
         >
           Go to Repositories
         </Link>
@@ -92,15 +93,15 @@ export default function IssuesPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
             <CircleDot className="w-6 h-6 text-emerald-400" />
             Open Issues
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
             {repoFullName ? (
               <>
                 Showing open issues for{" "}
-                <span className="text-violet-400 font-medium">{repoFullName}</span>
+                <span className="font-medium" style={{ color: 'var(--text-accent)' }}>{repoFullName}</span>
               </>
             ) : (
               `Issues for ${selectedRepo.name}`
@@ -108,12 +109,13 @@ export default function IssuesPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{issues.length} issues</span>
+          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{issues.length} issues</span>
           <a
             href={`${selectedRepo.url}/issues`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ border: '1px solid var(--border-secondary)', color: 'var(--text-secondary)' }}
           >
             <ExternalLink className="w-4 h-4" />
             View on GitHub
@@ -158,7 +160,8 @@ export default function IssuesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="block p-5 rounded-xl bg-[#16141c] border border-white/5 hover:border-violet-500/30 transition-all group cursor-pointer"
+                className="block p-5 rounded-xl transition-all group cursor-pointer"
+                style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-primary)' }}
               >
                 <div className="flex items-start gap-4">
                   <div className="mt-1">
@@ -167,9 +170,9 @@ export default function IssuesPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
-                      <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors leading-snug">
+                      <h3 className="font-semibold transition-colors leading-snug" style={{ color: 'var(--text-primary)' }}>
                         {issue.title}
-                        <span className="ml-2 text-gray-500 font-normal text-sm">#{issue.number}</span>
+                        <span className="ml-2 font-normal text-sm" style={{ color: 'var(--text-muted)' }}>#{issue.number}</span>
                       </h3>
                       <ExternalLink className="w-4 h-4 text-gray-600 group-hover:text-violet-400 transition-colors shrink-0 mt-1" />
                     </div>
@@ -194,7 +197,7 @@ export default function IssuesPage() {
                     )}
 
                     {/* Meta */}
-                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
                       <span className="flex items-center gap-1">
                         <User className="w-3 h-3" />
                         {issue.user}

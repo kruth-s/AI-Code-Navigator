@@ -67,7 +67,7 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: userInput,
-          repo_id: selectedRepo.id  // Send repo_id to backend
+          repo_id: selectedRepo.id
         }),
       });
 
@@ -95,17 +95,21 @@ export default function ChatPage() {
     <div className="flex flex-col h-[calc(100vh-140px)]">
       {/* Selected Repository Banner */}
       {selectedRepo && (
-        <div className="mb-4 p-4 bg-violet-500/10 border border-violet-500/20 rounded-lg flex items-center justify-between">
+        <div
+          className="mb-4 p-4 rounded-lg flex items-center justify-between"
+          style={{ backgroundColor: 'var(--bg-active)', border: '1px solid var(--border-accent)' }}
+        >
           <div className="flex items-center gap-3">
-            <FolderGit2 className="w-5 h-5 text-violet-400" />
+            <FolderGit2 className="w-5 h-5" style={{ color: 'var(--text-accent)' }} />
             <div>
-              <p className="text-sm text-gray-400">Currently chatting about:</p>
-              <p className="font-semibold text-white">{selectedRepo.name}</p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Currently chatting about:</p>
+              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{selectedRepo.name}</p>
             </div>
           </div>
           <Link 
             href="/dashboard/repositories"
-            className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: 'var(--text-accent)' }}
           >
             Change repository →
           </Link>
@@ -129,16 +133,21 @@ export default function ChatPage() {
             className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shrink-0 mt-1">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-1"
+                style={{ backgroundColor: 'var(--accent)' }}
+              >
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
             )}
             
-            <div className={`max-w-[80%] rounded-2xl p-4 ${
-              msg.role === 'user' 
-                ? 'bg-[#2b2934] text-white border border-white/5' 
-                : 'bg-transparent text-gray-300'
-            }`}>
+            <div
+              className="max-w-[80%] rounded-2xl p-4"
+              style={msg.role === 'user'
+                ? { backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)' }
+                : { backgroundColor: 'transparent', color: 'var(--text-secondary)' }
+              }
+            >
               <div className="font-sans text-sm leading-relaxed prose prose-invert max-w-none">
                 {msg.role === 'assistant' ? (
                   <Streamdown 
@@ -146,8 +155,7 @@ export default function ChatPage() {
                     animated
                     components={{
                       p: ({ children }: any) => <div className="mb-4 last:mb-0">{children}</div>,
-                      a: ({ children, node, ...props }: any) => <a {...props} className="text-violet-400 hover:underline">{children}</a>,
-                      // Ensure code blocks and other block elements stay as blocks
+                      a: ({ children, node, ...props }: any) => <a {...props} style={{ color: 'var(--text-accent)' }} className="hover:underline">{children}</a>,
                       ul: ({ children }: any) => <ul className="list-disc pl-4 mb-4">{children}</ul>,
                       ol: ({ children }: any) => <ol className="list-decimal pl-4 mb-4">{children}</ol>,
                       li: ({ children }: any) => <li className="mb-1">{children}</li>,
@@ -162,8 +170,11 @@ export default function ChatPage() {
             </div>
 
             {msg.role === 'user' && (
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0 mt-1">
-                <User className="w-4 h-4 text-white" />
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-1"
+                style={{ backgroundColor: 'var(--bg-hover)' }}
+              >
+                <User className="w-4 h-4" style={{ color: 'var(--text-primary)' }} />
               </div>
             )}
           </motion.div>
@@ -192,18 +203,24 @@ export default function ChatPage() {
               }
             }}
             placeholder="Ask a question about your connected repos..." 
-            className="w-full min-h-14 max-h-37.5 bg-[#16141c] border border-white/10 rounded-xl pl-5 pr-14 py-4 text-white placeholder:text-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-colors font-sans resize-none scrollbar-hide leading-normal"
+            className="w-full min-h-14 max-h-37.5 rounded-xl pl-5 pr-14 py-4 focus:outline-none font-sans resize-none scrollbar-hide leading-normal"
+            style={{
+              backgroundColor: 'var(--input-bg)',
+              border: '1px solid var(--border-secondary)',
+              color: 'var(--text-primary)',
+            }}
             rows={1}
           />
           <button 
             type="submit"
             disabled={loading || !input.trim()}
-            className={`absolute right-2 bottom-2 h-10 w-10 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center justify-center transition-colors shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed`}
+            className="absolute right-2 bottom-2 h-10 w-10 text-white rounded-lg flex items-center justify-center transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: 'var(--accent)', boxShadow: `0 4px 14px var(--accent-glow)` }}
           >
             {loading ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </form>
-        <p className="text-xs text-center text-gray-600 mt-2">
+        <p className="text-xs text-center mt-2" style={{ color: 'var(--text-muted)' }}>
            AI can make mistakes. Please verify important code information.
         </p>
       </div>

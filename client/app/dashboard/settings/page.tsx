@@ -1,204 +1,230 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { User, Lock, Bell, Key, CreditCard, Shield } from "lucide-react";
-
-import { useState, useEffect } from "react";
+import { 
+  Globe, Palette, Bot, Terminal, Check
+} from "lucide-react";
+import { useTheme, ThemeName } from "@/lib/ThemeContext";
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState({
-    GEMINI_API_KEY: "",
-    GROQ_API_KEY: "",
-    GITHUB_ACCESS_TOKEN: ""
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('http://localhost:8000/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        setSettings(data);
-        setLoading(false);
-      });
-  }, []);
-
-  const handleUpdate = async (key: string, value: string) => {
-    try {
-       await fetch('http://localhost:8000/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [key]: value })
-       });
-       alert("Setting updated!");
-       setSettings(prev => ({ ...prev, [key]: value ? "********" : null }));
-    } catch (e) {
-       alert("Failed to update setting");
-    }
-  };
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-       <div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-gray-400">Manage your account preferences and integrations.</p>
-        </div>
-
-        <div className="grid gap-8">
-           {/* Profile Section */}
-           <Section title="Profile" icon={<User className="w-5 h-5" />}>
-              <div className="grid md:grid-cols-2 gap-6">
-                 <Input label="Full Name" defaultValue="User" />
-                 <Input label="Email Address" defaultValue="user@example.com" />
-              </div>
-           </Section>
-
-           <Section title="Integrations & API Keys" icon={<Key className="w-5 h-5" />}>
-              <div className="space-y-4">
-                 {/* Gemini */}
-                 <ApiKeyInput 
-                    label="Google Gemini API Key" 
-                    connected={!!settings.GEMINI_API_KEY} 
-                    onSave={(val) => handleUpdate("GEMINI_API_KEY", val)}
-                 />
-                 
-
-
-                 {/* GitHub */}
-                 <ApiKeyInput 
-                    label="GitHub Access Token" 
-                    connected={!!settings.GITHUB_ACCESS_TOKEN} 
-                    onSave={(val) => handleUpdate("GITHUB_ACCESS_TOKEN", val)}
-                 />
-              </div>
-           </Section>
-
-           {/* Notifications */}
-           <Section title="Notifications" icon={<Bell className="w-5 h-5" />}>
-              <div className="space-y-3">
-                 <Toggle label="Email notifications for completed indexing" defaultChecked />
-                 <Toggle label="Weekly digest of repository insights" />
-                 <Toggle label="New feature announcements" defaultChecked />
-              </div>
-           </Section>
-
-           {/* Danger Zone */}
-           <div className="border border-red-500/20 rounded-xl overflow-hidden">
-              <div className="bg-red-500/5 px-6 py-4 border-b border-red-500/10 flex items-center gap-2 text-red-400">
-                 <Shield className="w-5 h-5" />
-                 <h3 className="font-semibold">Danger Zone</h3>
-              </div>
-              <div className="p-6">
-                 <div className="flex items-center justify-between">
-                    <div>
-                       <div className="font-medium text-white">Delete Account</div>
-                       <div className="text-sm text-gray-500">Permanently remove your account and all data.</div>
-                    </div>
-                    <button className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-sm font-medium transition-colors border border-red-500/20">
-                       Delete Account
-                    </button>
-                 </div>
-              </div>
-           </div>
-        </div>
-    </div>
-  );
-}
-
-function Section({ title, icon, children }: { title: string, icon: any, children: React.ReactNode }) {
-  return (
-    <div className="space-y-4">
-       <div className="flex items-center gap-2 text-lg font-semibold text-white/90">
-          <span className="text-gray-500">{icon}</span>
-          {title}
-       </div>
-       <div className="p-6 bg-[#16141c] border border-white/5 rounded-xl">
-          {children}
-       </div>
-    </div>
-  );
-}
-
-function Input({ label, defaultValue }: { label: string, defaultValue: string }) {
-   return (
-      <div className="space-y-1.5">
-         <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</label>
-         <input 
-            type="text" 
-            defaultValue={defaultValue} 
-            className="w-full bg-[#1c1a23] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-violet-500/50 transition-colors" 
-         />
+      <div>
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          Settings
+        </h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Manage your application preferences and workspace defaults.</p>
       </div>
-   );
+
+      <div className="grid gap-8">
+        {/* General Settings */}
+        <Section title="General" icon={<Globe className="w-5 h-5 text-blue-400" />}>
+          <div className="grid md:grid-cols-2 gap-6">
+            <SelectDropdown label="Default Interface Language" options={["English (US)", "Spanish", "French", "German"]} />
+            <Input label="Default Branch Detection" defaultValue="main" placeholder="e.g. main, master" />
+          </div>
+        </Section>
+
+        {/* Appearance */}
+        <Section title="Appearance" icon={<Palette className="w-5 h-5 text-pink-400" />}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <ThemeCard
+              themeId="classic"
+              title="Classic"
+              description="Deep dark OLED theme"
+              active={theme === 'classic'}
+              onClick={() => setTheme('classic')}
+              previewColors={{ bg: '#0f0f11', sidebar: '#16141c', content: '#1c1a23' }}
+            />
+            <ThemeCard
+              themeId="light"
+              title="Light"
+              description="Clean bright interface"
+              active={theme === 'light'}
+              onClick={() => setTheme('light')}
+              previewColors={{ bg: '#f5f5f7', sidebar: '#ffffff', content: '#f0f0f2' }}
+            />
+            <ThemeCard
+              themeId="nord"
+              title="Nord"
+              description="Professional arctic palette"
+              active={theme === 'nord'}
+              onClick={() => setTheme('nord')}
+              previewColors={{ bg: '#2e3440', sidebar: '#3b4252', content: '#434c5e' }}
+            />
+          </div>
+        </Section>
+
+        {/* Chat Preferences */}
+        <Section title="Chat Preferences" icon={<Bot className="w-5 h-5" style={{ color: 'var(--text-accent)' }} />}>
+          <div className="space-y-4">
+            <Toggle label="Stream AI responses in real-time" defaultChecked />
+            <Toggle label="Show line numbers in code snippets" defaultChecked />
+            <Toggle label="Auto-detect programming language" defaultChecked />
+            <Toggle label="Explain complex code blocks by default" />
+          </div>
+        </Section>
+
+        {/* Advanced Workspace */}
+        <Section title="Advanced" icon={<Terminal className="w-5 h-5 text-emerald-400" />}>
+          <div className="space-y-4">
+             <div
+               className="p-4 rounded-xl flex items-center justify-between"
+               style={{ backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border-primary)' }}
+             >
+                <div>
+                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Debug Mode</div>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Show verbose logs in the browser console.</div>
+                </div>
+                <button
+                  className="px-3 py-1.5 rounded-md text-xs transition-colors"
+                  style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+                >
+                  Enable
+                </button>
+             </div>
+          </div>
+        </Section>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--border-primary)' }}>
+        <button
+          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          Discard Changes
+        </button>
+        <button
+          className="px-6 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
+          style={{ backgroundColor: 'var(--accent)', boxShadow: `0 10px 25px -5px var(--accent-glow)` }}
+        >
+          Save Settings
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Sub-components
+function Section({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) {
+  return (
+    <div className="space-y-4 group">
+      <div className="flex items-center gap-2 text-md font-semibold" style={{ color: 'var(--text-primary)', opacity: 0.9 }}>
+        <span className="opacity-70 group-hover:opacity-100 transition-opacity">{icon}</span>
+        {title}
+      </div>
+      <div
+        className="p-6 rounded-2xl shadow-xl"
+        style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-primary)' }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ThemeCard({
+  themeId, title, description, active = false, onClick, previewColors
+}: {
+  themeId: string, title: string, description: string, active?: boolean, onClick: () => void,
+  previewColors: { bg: string, sidebar: string, content: string }
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="p-4 rounded-xl transition-all cursor-pointer text-left relative"
+      style={{
+        backgroundColor: active ? 'var(--bg-active)' : 'var(--bg-hover)',
+        border: active ? '2px solid var(--accent)' : '1px solid var(--border-primary)',
+        boxShadow: active ? `0 0 20px var(--accent-glow)` : 'none',
+      }}
+    >
+      {/* Active indicator */}
+      {active && (
+        <div
+          className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'var(--accent)' }}
+        >
+          <Check className="w-3 h-3 text-white" />
+        </div>
+      )}
+
+      {/* Theme preview */}
+      <div
+        className="w-full h-16 rounded-lg mb-3 flex gap-0.5 overflow-hidden"
+        style={{ border: '1px solid var(--border-primary)' }}
+      >
+        <div className="w-1/4 h-full" style={{ backgroundColor: previewColors.sidebar }}></div>
+        <div className="flex-1 h-full flex flex-col">
+          <div className="h-3" style={{ backgroundColor: previewColors.sidebar, opacity: 0.7 }}></div>
+          <div className="flex-1" style={{ backgroundColor: previewColors.bg }}></div>
+        </div>
+      </div>
+
+      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</div>
+      <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</div>
+    </button>
+  );
+}
+
+function SelectDropdown({ label, options }: { label: string, options: string[] }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{label}</label>
+      <select
+        className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none appearance-none cursor-pointer transition-colors"
+        style={{
+          backgroundColor: 'var(--input-bg)',
+          border: '1px solid var(--border-secondary)',
+          color: 'var(--text-primary)',
+        }}
+      >
+        {options.map(o => <option key={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function Input({ label, defaultValue, placeholder }: { label: string, defaultValue?: string, placeholder?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{label}</label>
+      <input 
+        type="text" 
+        defaultValue={defaultValue} 
+        placeholder={placeholder}
+        className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none transition-colors"
+        style={{
+          backgroundColor: 'var(--input-bg)',
+          border: '1px solid var(--border-secondary)',
+          color: 'var(--text-primary)',
+        }}
+      />
+    </div>
+  );
 }
 
 function Toggle({ label, defaultChecked }: { label: string, defaultChecked?: boolean }) {
-   return (
-      <label className="flex items-center gap-3 cursor-pointer group">
-         <div className="relative">
-            <input type="checkbox" defaultChecked={defaultChecked} className="peer sr-only" />
-            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
-         </div>
-         <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{label}</span>
-      </label>
-   );
-}
-
-function ApiKeyInput({ label, connected, onSave }: { label: string, connected: boolean, onSave: (val: string) => void }) {
-   const [isEditing, setIsEditing] = useState(false);
-   const [value, setValue] = useState("");
-
-   return (
-      <div className="p-4 bg-white/5 border border-white/5 rounded-xl">
-         <div className="flex justify-between items-start mb-2">
-            <span className="font-medium">{label}</span>
-            <span className={`text-xs px-2 py-0.5 rounded border ${
-               connected 
-               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-               : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
-            }`}>
-               {connected ? "Connected" : "Not Connected"}
-            </span>
-         </div>
-         {isEditing ? (
-            <div className="flex gap-2">
-               <input 
-                  type="password" 
-                  autoFocus
-                  placeholder="Paste new key..."
-                  className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-1.5 text-sm text-white focus:border-violet-500/50 outline-none"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-               />
-               <button 
-                  onClick={() => { onSave(value); setIsEditing(false); }}
-                  className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded text-sm transition-colors"
-               >
-                  Save
-               </button>
-               <button 
-                  onClick={() => setIsEditing(false)}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors"
-               >
-                  Cancel
-               </button>
-            </div>
-         ) : (
-            <div className="flex gap-2">
-               <input 
-                  type="password" 
-                  value={connected ? "........................" : ""} 
-                  disabled 
-                  className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-1.5 text-sm text-gray-500" 
-                  placeholder="Not configured"
-               />
-               <button 
-                  onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors"
-               >
-                  Edit
-               </button>
-            </div>
-         )}
+  return (
+    <label className="flex items-center justify-between cursor-pointer group">
+      <span className="text-sm group-hover:opacity-80 transition-opacity" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+      <div className="relative">
+        <input type="checkbox" defaultChecked={defaultChecked} className="peer sr-only" />
+        <div
+          className="w-10 h-5 rounded-full peer peer-checked:after:translate-x-[20px] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"
+          style={{ backgroundColor: 'var(--bg-hover)' }}
+        ></div>
+        {/* Checked state uses accent color via a CSS approach */}
+        <style jsx>{`
+          .peer:checked ~ div {
+            background-color: var(--accent) !important;
+          }
+        `}</style>
       </div>
-   );
+    </label>
+  );
 }
