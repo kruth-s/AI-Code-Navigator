@@ -50,8 +50,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
+  // Return safe defaults during SSR/prerendering when ThemeProvider isn't mounted yet
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    return { theme: 'classic' as ThemeName, setTheme: () => {} };
   }
   return context;
 }
