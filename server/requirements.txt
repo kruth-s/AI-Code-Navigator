@@ -8,7 +8,7 @@ langgraph
 langchain-groq
 pinecone
 httpx
-mcp
+fastmcp
 langchain-community
 gitpython
 sentence-transformers

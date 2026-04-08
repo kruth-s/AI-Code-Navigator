@@ -20,5 +20,16 @@
         "language": "Python",
         "progress": 100,
         "status_message": "\nRepository 'fider' ingested successfully!"
+    },
+    "textsummarizer": {
+        "id": "textsummarizer",
+        "name": "TextSummarizer",
+        "url": "https://github.com/kruth-s/TextSummarizer",
+        "status": "Indexed",
+        "lastSynced": "2026-03-17 13:23:36",
+        "branch": "main",
+        "language": "Python",
+        "progress": 100,
+        "status_message": "Repository 'TextSummarizer' ingested successfully!"
     }
 }

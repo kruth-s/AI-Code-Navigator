@@ -1,220 +1,226 @@
+"""
+FastAPI REST Routes — Thin wrappers over MCP tools.
+
+These routes exist so the Next.js frontend can call familiar REST endpoints.
+Under the hood, every route delegates to the MCP Server tools via the MCP Client.
+
+    Frontend  →  REST route  →  MCP Client  →  MCP Server tool
+"""
+
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
-import json
 import re
-import httpx
 from datetime import datetime
+
+from ..mcp_client import mcp_client
 
 router = APIRouter()
 
-# File-based storage for repository status
-REPOS_FILE = os.path.join(os.getcwd(), "repositories.json")
 
-def load_repos():
-    if os.path.exists(REPOS_FILE):
-        try:
-            with open(REPOS_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
+# ─── Request / Response Models ────────────────────────────────────────────────
 
-repositories_db: Dict[str, Dict[str, Any]] = load_repos()
 
-def save_repos():
-    try:
-        with open(REPOS_FILE, "w") as f:
-            json.dump(repositories_db, f, indent=4)
-    except Exception as e:
-        print(f"Error saving repos: {e}")
-
-# Request/Response Models
 class ChatRequest(BaseModel):
     query: str
-    repo_id: Optional[str] = None  # Which repo to query
+    repo_id: Optional[str] = None
+
 
 class ChatResponse(BaseModel):
     answer: str
     confidence: Optional[str] = None
     sources: Optional[List[str]] = None
 
+
 class IngestRequest(BaseModel):
     repo_url: str
+
 
 class IngestResponse(BaseModel):
     status: str
     message: str
     repo_id: str
 
+
 class Repository(BaseModel):
     id: str
     name: str
     url: str
-    status: str  # "Indexed", "Indexing", "Error"
+    status: str
     lastSynced: str
     branch: str
     language: str
     progress: Optional[int] = 0
-    status_message: Optional[str] = ""  # Detailed status message
+    status_message: Optional[str] = ""
 
-# API Endpoints
+
+# ─── Chat ─────────────────────────────────────────────────────────────────────
+
 
 @router.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
-    Handle chat queries about a specific repository
+    Handle chat queries about a specific repository.
+    Delegates to the `query_codebase` MCP tool.
     """
-    try:
-        if not request.repo_id:
-            raise HTTPException(status_code=400, detail="Please select a repository first")
-        
-        if request.repo_id not in repositories_db:
-            raise HTTPException(status_code=404, detail="Repository not found")
-        
-        if repositories_db[request.repo_id]["status"] != "Indexed":
-            raise HTTPException(status_code=400, detail="Repository is not indexed yet")
-        
-        # Lazy import to avoid loading graph at startup
-        from ..graph import app_graph
-        
-        # Prepare initial state for the agent graph with repo_id
-        repo_url = repositories_db[request.repo_id].get("url", "")
-        initial_state = {
-            "input": request.query,
-            "repo_id": request.repo_id,  # Pass repo_id to graph
-            "repo_url": repo_url,  # Pass repo URL for GitHub API calls
-            "context": [],
-            "github_data": [],
-            "messages": [],
-            "plan": [],
-            "answer": ""
-        }
-        
-        # Run the agent graph
-        result = await app_graph.ainvoke(initial_state)
-        final_output = result.get("final_output", {})
-        
-        return ChatResponse(
-            answer=final_output.get('answer', 'No answer generated'),
-            confidence=final_output.get('confidence', 'unknown'),
-            sources=final_output.get('sources', [])
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+    if not request.repo_id:
+        raise HTTPException(status_code=400, detail="Please select a repository first")
+
+    result = await mcp_client.chat(query=request.query, repo_id=request.repo_id)
+
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return ChatResponse(
+        answer=result.get("answer", "No answer generated"),
+        confidence=result.get("confidence", "unknown"),
+        sources=result.get("sources", []),
+    )
+
+
+# ─── Repositories ────────────────────────────────────────────────────────────
+
 
 @router.get("/api/repos", response_model=List[Repository])
 async def get_repositories():
     """
-    Get list of all repositories, synced with live Pinecone namespaces
+    Get list of all repositories, synced with Pinecone.
+    Delegates to the `list_repositories` MCP tool.
     """
-    try:
-        from pinecone import Pinecone
-        from ..core.config import settings
-        
-        # Connect to Pinecone
-        pc = Pinecone(api_key=settings.PINECONE_API_KEY)
-        index = pc.Index(settings.PINECONE_INDEX)
-        
-        # Get actual namespaces in Pinecone
-        stats = index.describe_index_stats()
-        active_namespaces = set(stats.namespaces.keys()) if stats.namespaces else set()
-        
-        # Sync logic
-        repos_changed = False
-        
-        # 1. Remove repos that say they are "Indexed" but are missing from Pinecone
-        repos_to_delete = []
-        for repo_id, repo in repositories_db.items():
-            if repo["status"] == "Indexed" and repo_id not in active_namespaces:
-                repos_to_delete.append(repo_id)
-                
-        for repo_id in repos_to_delete:
-            del repositories_db[repo_id]
-            repos_changed = True
-            
-        # 2. Add repos that are in Pinecone but missing from local DB
-        for ns in active_namespaces:
-            if ns not in repositories_db:
-                repositories_db[ns] = {
-                    "id": ns,
-                    "name": ns.replace("-", " ").title(),
-                    "url": f"https://github.com/unknown/{ns}",
-                    "status": "Indexed",
-                    "lastSynced": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "branch": "main",
-                    "language": "Unknown",
-                    "progress": 100,
-                    "status_message": "Discovered in Pinecone"
-                }
-                repos_changed = True
-                
-        # Save if we made changes
-        if repos_changed:
-            save_repos()
-            
-    except Exception as e:
-        print(f"Warning: Could not sync with Pinecone: {e}")
-        # Proceed with local state if Pinecone check fails
-    
-    return list(repositories_db.values())
+    repos = mcp_client.get_repos()
+    return repos
+
 
 @router.post("/api/ingest", response_model=IngestResponse)
 async def ingest_repository(request: IngestRequest, background_tasks: BackgroundTasks):
     """
-    Start ingesting a new repository (max 5 repos allowed)
+    Start ingesting a new repository.
+    Delegates to the `ingest_repository` MCP tool for initial setup,
+    then runs the heavy indexing in a background task.
     """
-    try:
-        # Check if we already have 5 repos
-        indexed_repos = [r for r in repositories_db.values() if r["status"] == "Indexed"]
-        if len(indexed_repos) >= 5:
-            raise HTTPException(
-                status_code=400, 
-                detail="Maximum 5 repositories allowed. Please delete some repositories first or use /api/repos/clear-all to clear all."
-            )
-        
-        # Extract repo name from URL
-        repo_name = request.repo_url.rstrip("/").split("/")[-1].replace(".git", "")
-        repo_id = repo_name.lower().replace(" ", "-").replace("_", "-")
-        
-        # Check if repo already exists
-        if repo_id in repositories_db:
-            raise HTTPException(status_code=400, detail="Repository already indexed or being indexed")
-        
-        # Create repository entry
-        repositories_db[repo_id] = {
-            "id": repo_id,
-            "name": repo_name,
-            "url": request.repo_url,
-            "status": "Indexing",
-            "lastSynced": "Just now",
-            "branch": "main",
-            "language": "Python",
-            "progress": 0,
-            "status_message": f"Starting ingestion for {repo_name}..."
-        }
-        save_repos()
-        
-        # Start ingestion in background
-        background_tasks.add_task(ingest_repo_background, repo_id, request.repo_url)
-        
-        return IngestResponse(
-            status="success",
-            message=f"Started ingesting repository: {repo_name} ({len(indexed_repos) + 1}/5)",
-            repo_id=repo_id
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting ingestion: {str(e)}")
+    result = mcp_client.start_ingest(repo_url=request.repo_url)
 
-def ingest_repo_background(repo_id: str, repo_url: str):
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    # Run the actual clone + embed + upsert work in the background
+    background_tasks.add_task(
+        _ingest_background, result["repo_id"], request.repo_url
+    )
+
+    return IngestResponse(
+        status=result["status"],
+        message=result["message"],
+        repo_id=result["repo_id"],
+    )
+
+
+@router.delete("/api/repos/{repo_id}")
+async def delete_repository(repo_id: str):
     """
-    Background task to ingest repository with detailed status updates
+    Delete a repository.
+    Delegates to the `delete_repository` MCP tool.
     """
+    result = mcp_client.remove_repo(repo_id=repo_id)
+
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+
+    return result
+
+
+@router.post("/api/repos/clear-all")
+async def clear_all_repositories():
+    """
+    Clear all repositories.
+    Delegates to the `clear_all_repositories` MCP tool.
+    """
+    result = mcp_client.clear_repos()
+
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+
+    return result
+
+
+# ─── Issues ──────────────────────────────────────────────────────────────────
+
+
+@router.get("/api/repos/{repo_id}/issues")
+async def get_repo_issues(repo_id: str):
+    """
+    Fetch open issues from GitHub for a repository.
+    Delegates to the `get_github_issues` MCP tool.
+    """
+    repos_db = mcp_client.repos_db
+
+    if repo_id not in repos_db:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    repo = repos_db[repo_id]
+    repo_url = repo.get("url", "")
+
+    match = re.search(r"github\.com/([^/]+)/([^/]+)", repo_url)
+    if not match:
+        raise HTTPException(status_code=400, detail="Not a valid GitHub repository URL")
+
+    owner = match.group(1)
+    repo_name = match.group(2).replace(".git", "")
+
+    issues = mcp_client.fetch_issues(repo_url=repo_url)
+
+    if issues and isinstance(issues[0], dict) and "error" in issues[0]:
+        raise HTTPException(status_code=500, detail=issues[0]["error"])
+
+    return {"issues": issues, "repo": f"{owner}/{repo_name}"}
+
+
+# ─── Settings ────────────────────────────────────────────────────────────────
+
+
+@router.get("/api/settings")
+async def get_settings():
+    """
+    Get current settings (masked).
+    Delegates to the `get_settings` MCP tool.
+    """
+    return mcp_client.fetch_settings()
+
+
+@router.post("/api/settings")
+async def update_settings(settings: Dict[str, str]):
+    """
+    Update settings.
+    Delegates to the `update_settings` MCP tool.
+    """
+    return mcp_client.save_settings(settings_dict=settings)
+
+
+# ─── Health ──────────────────────────────────────────────────────────────────
+
+
+@router.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    repos_db = mcp_client.repos_db
+    return {
+        "status": "ok",
+        "repositories": len(repos_db),
+        "mcp": "enabled",
+    }
+
+
+# ─── Background Ingestion (heavy lifting) ───────────────────────────────────
+
+
+def _ingest_background(repo_id: str, repo_url: str):
+    """
+    Background task to ingest repository with detailed status updates.
+    Accesses the MCP server's shared repositories_db through the client.
+    """
+    repos_db = mcp_client.repos_db
+
     try:
         from git import Repo
         import shutil
@@ -222,284 +228,137 @@ def ingest_repo_background(repo_id: str, repo_url: str):
         from langchain_community.embeddings import HuggingFaceEmbeddings
         from pinecone import Pinecone
         from ..core.config import settings
-        
-        # Extract repo name
+
         repo_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
         base_dir = os.path.join(os.getcwd(), "repos")
         repo_dir = os.path.join(base_dir, repo_name)
-        
-        # Clone/Pull repository
-        repositories_db[repo_id]["progress"] = 10
-        repositories_db[repo_id]["status_message"] = f"Ingesting repository: {repo_url}\n{'=' * 70}"
-        
+
+        # Clone / Pull
+        repos_db[repo_id]["progress"] = 10
+        repos_db[repo_id]["status_message"] = f"Ingesting repository: {repo_url}"
+
         if os.path.exists(repo_dir):
             try:
-                repositories_db[repo_id]["status_message"] = "Repository exists, pulling latest..."
+                repos_db[repo_id]["status_message"] = "Repository exists, pulling latest..."
                 repo = Repo(repo_dir)
                 repo.remotes.origin.pull()
-            except:
-                repositories_db[repo_id]["status_message"] = "Pull failed, re-cloning..."
+            except Exception:
+                repos_db[repo_id]["status_message"] = "Pull failed, re-cloning..."
                 import stat
+
                 def on_rm_error(func, path, exc_info):
                     os.chmod(path, stat.S_IWRITE)
                     func(path)
+
                 shutil.rmtree(repo_dir, onerror=on_rm_error)
                 Repo.clone_from(repo_url, repo_dir)
         else:
-            repositories_db[repo_id]["status_message"] = f"Cloning to {repo_dir}..."
+            repos_db[repo_id]["status_message"] = f"Cloning to {repo_dir}..."
             os.makedirs(base_dir, exist_ok=True)
             Repo.clone_from(repo_url, repo_dir)
-        
-        repositories_db[repo_id]["progress"] = 30
-        
+
+        repos_db[repo_id]["progress"] = 30
+
         # Read files
-        repositories_db[repo_id]["status_message"] = "Reading files..."
+        repos_db[repo_id]["status_message"] = "Reading files..."
         documents = []
         for root, _, files in os.walk(repo_dir):
             if ".git" in root:
                 continue
             for file in files:
-                if file.endswith(('.py', '.js', '.ts', '.jsx', '.tsx', '.md', '.txt', '.java', '.go', '.rs', '.c', '.cpp', '.h')):
+                if file.endswith((
+                    ".py", ".js", ".ts", ".jsx", ".tsx", ".md", ".txt",
+                    ".java", ".go", ".rs", ".c", ".cpp", ".h",
+                )):
                     path = os.path.join(root, file)
                     try:
                         with open(path, "r", encoding="utf-8") as f:
                             content = f.read()
-                            documents.append({"text": content, "source": path, "repo": repo_name})
-                    except:
+                            documents.append({
+                                "text": content, "source": path, "repo": repo_name
+                            })
+                    except Exception:
                         pass
-        
-        repositories_db[repo_id]["progress"] = 50
-        repositories_db[repo_id]["status_message"] = f"Found {len(documents)} files"
-        
+
+        repos_db[repo_id]["progress"] = 50
+        repos_db[repo_id]["status_message"] = f"Found {len(documents)} files"
+
         if not documents:
-            repositories_db[repo_id]["status"] = "Error"
-            repositories_db[repo_id]["status_message"] = "No supported files found in repository"
-            repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            save_repos()
+            repos_db[repo_id]["status"] = "Error"
+            repos_db[repo_id]["status_message"] = "No supported files found"
+            repos_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            mcp_client.save_repos()
             return
-        
-        # Chunk documents
-        repositories_db[repo_id]["status_message"] = "Splitting into chunks..."
+
+        # Chunk
+        repos_db[repo_id]["status_message"] = "Splitting into chunks..."
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         chunks_text = []
         chunks_meta = []
-        
+
         for d in documents:
             splits = splitter.split_text(d["text"])
             for i, s in enumerate(splits):
                 chunk_id = f"{repo_name}-{os.path.basename(d['source'])}-{i}"
                 chunks_text.append(s)
-                chunks_meta.append({"text": s, "source": d["source"], "repo": d["repo"], "chunk_id": chunk_id})
-        
-        repositories_db[repo_id]["progress"] = 60
-        repositories_db[repo_id]["status_message"] = f"Created {len(chunks_text)} chunks"
-        
-        # Generate embeddings
-        repositories_db[repo_id]["status_message"] = "Generating embeddings..."
-        repositories_db[repo_id]["progress"] = 65
-        
-        repositories_db[repo_id]["status_message"] = "Loading embedding model..."
-        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        
-        repositories_db[repo_id]["status_message"] = "Embedding documents..."
-        vectors = embeddings.embed_documents(chunks_text)
-        
-        repositories_db[repo_id]["progress"] = 80
-        
+                chunks_meta.append({
+                    "text": s, "source": d["source"],
+                    "repo": d["repo"], "chunk_id": chunk_id,
+                })
+
+        repos_db[repo_id]["progress"] = 60
+        repos_db[repo_id]["status_message"] = f"Created {len(chunks_text)} chunks"
+
+        # Embed
+        repos_db[repo_id]["status_message"] = "Loading embedding model..."
+        repos_db[repo_id]["progress"] = 65
+        embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+        repos_db[repo_id]["status_message"] = "Embedding documents..."
+        vectors = embeddings_model.embed_documents(chunks_text)
+        repos_db[repo_id]["progress"] = 80
+
         # Upsert to Pinecone
-        repositories_db[repo_id]["status_message"] = "Uploading to Pinecone..."
+        repos_db[repo_id]["status_message"] = "Uploading to Pinecone..."
         pc = Pinecone(api_key=settings.PINECONE_API_KEY)
         index = pc.Index(settings.PINECONE_INDEX)
-        
-        # Use repo_id as namespace to keep repos separate
+
         batch_size = 100
         total_batches = (len(chunks_text) + batch_size - 1) // batch_size
-        
+
         for i in range(0, len(chunks_text), batch_size):
             batch_num = (i // batch_size) + 1
-            repositories_db[repo_id]["status_message"] = f"   Batch {batch_num}/{total_batches} uploaded"
-            
-            batch_vecs = vectors[i:i+batch_size]
-            batch_meta = chunks_meta[i:i+batch_size]
-            
+            repos_db[repo_id]["status_message"] = f"Batch {batch_num}/{total_batches} uploaded"
+
+            batch_vecs = vectors[i : i + batch_size]
+            batch_meta = chunks_meta[i : i + batch_size]
+
             to_upsert = []
             for j, vec in enumerate(batch_vecs):
                 meta = batch_meta[j]
                 to_upsert.append({
                     "id": meta["chunk_id"],
                     "values": vec,
-                    "metadata": {"text": meta["text"], "source": meta["source"], "repo": meta["repo"]}
+                    "metadata": {
+                        "text": meta["text"],
+                        "source": meta["source"],
+                        "repo": meta["repo"],
+                    },
                 })
-            
-            # Upsert with namespace = repo_id
+
             index.upsert(vectors=to_upsert, namespace=repo_id)
-            repositories_db[repo_id]["progress"] = 80 + (batch_num * 15 // total_batches)
-        
-        # Update status to completed
-        repositories_db[repo_id]["status"] = "Indexed"
-        repositories_db[repo_id]["progress"] = 100
-        repositories_db[repo_id]["status_message"] = f"\nRepository '{repo_name}' ingested successfully!"
-        repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        save_repos()
-        
+            repos_db[repo_id]["progress"] = 80 + (batch_num * 15 // total_batches)
+
+        # Done
+        repos_db[repo_id]["status"] = "Indexed"
+        repos_db[repo_id]["progress"] = 100
+        repos_db[repo_id]["status_message"] = f"Repository '{repo_name}' ingested successfully!"
+        repos_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        mcp_client.save_repos()
+
     except Exception as e:
         print(f"Error ingesting repository: {e}")
-        repositories_db[repo_id]["status"] = "Error"
-        repositories_db[repo_id]["status_message"] = f"Error: {str(e)}"
-        repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        save_repos()
-
-@router.delete("/api/repos/{repo_id}")
-async def delete_repository(repo_id: str):
-    """
-    Delete a repository and its vectors from Pinecone
-    """
-    if repo_id not in repositories_db:
-        raise HTTPException(status_code=404, detail="Repository not found")
-    
-    try:
-        # Delete from Pinecone namespace
-        from pinecone import Pinecone
-        from ..core.config import settings
-        
-        pc = Pinecone(api_key=settings.PINECONE_API_KEY)
-        index = pc.Index(settings.PINECONE_INDEX)
-        
-        # Delete all vectors in this namespace
-        index.delete(delete_all=True, namespace=repo_id)
-        
-        # Delete from in-memory DB
-        del repositories_db[repo_id]
-        save_repos()
-        
-        return {"status": "success", "message": "Repository deleted"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error deleting repository: {str(e)}")
-
-@router.post("/api/repos/clear-all")
-async def clear_all_repositories():
-    """
-    Clear all repositories and their vectors from Pinecone
-    """
-    try:
-        from pinecone import Pinecone
-        from ..core.config import settings
-        
-        pc = Pinecone(api_key=settings.PINECONE_API_KEY)
-        index = pc.Index(settings.PINECONE_INDEX)
-        
-        # Delete all namespaces
-        for repo_id in list(repositories_db.keys()):
-            try:
-                index.delete(delete_all=True, namespace=repo_id)
-            except:
-                pass
-        
-        # Clear in-memory DB
-        repositories_db.clear()
-        save_repos()
-        
-        return {"status": "success", "message": "All repositories cleared"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error clearing repositories: {str(e)}")
-
-@router.get("/api/settings")
-async def get_settings():
-    """
-    Get current settings (API keys masked)
-    """
-    return {
-        "GEMINI_API_KEY": "********" if os.getenv("GEMINI_API_KEY") else None,
-        "GROQ_API_KEY": "********" if os.getenv("GROQ_API_KEY") else None,
-        "GITHUB_ACCESS_TOKEN": "********" if os.getenv("GITHUB_ACCESS_TOKEN") else None
-    }
-
-@router.post("/api/settings")
-async def update_settings(settings: Dict[str, str]):
-    """
-    Update settings (in production, save to .env file or database)
-    """
-    # In production, you would save these to a .env file or database
-    # For now, just return success
-    for key, value in settings.items():
-        if key in ["GEMINI_API_KEY", "GROQ_API_KEY", "GITHUB_ACCESS_TOKEN"]:
-            os.environ[key] = value
-    
-    return {"status": "success", "message": "Settings updated"}
-
-@router.get("/api/repos/{repo_id}/issues")
-async def get_repo_issues(repo_id: str):
-    """
-    Fetch open issues from GitHub for a given repository
-    """
-    if repo_id not in repositories_db:
-        raise HTTPException(status_code=404, detail="Repository not found")
-    
-    repo = repositories_db[repo_id]
-    repo_url = repo.get("url", "")
-    
-    # Extract owner/repo from GitHub URL
-    match = re.search(r"github\.com/([^/]+)/([^/]+)", repo_url)
-    if not match:
-        raise HTTPException(status_code=400, detail="Not a valid GitHub repository URL")
-    
-    owner = match.group(1)
-    repo_name = match.group(2).replace(".git", "")
-    
-    try:
-        from ..core.config import settings
-        
-        headers = {"Accept": "application/vnd.github+json"}
-        token = settings.GITHUB_ACCESS_TOKEN or os.getenv("GITHUB_ACCESS_TOKEN")
-        if token and len(token) > 10 and not token.startswith("your_"):
-            headers["Authorization"] = f"Bearer {token}"
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"https://api.github.com/repos/{owner}/{repo_name}/issues",
-                params={"state": "open", "per_page": 30},
-                headers=headers,
-                timeout=15.0
-            )
-        
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"GitHub API error: {response.text}"
-            )
-        
-        issues_raw = response.json()
-        
-        # Filter out pull requests (GitHub API returns PRs as issues too)
-        issues = []
-        for issue in issues_raw:
-            if "pull_request" in issue:
-                continue
-            issues.append({
-                "number": issue["number"],
-                "title": issue["title"],
-                "state": issue["state"],
-                "labels": [{"name": l["name"], "color": l.get("color", "333333")} for l in issue.get("labels", [])],
-                "created_at": issue["created_at"],
-                "html_url": issue["html_url"],
-                "user": issue["user"]["login"] if issue.get("user") else "unknown",
-                "comments": issue.get("comments", 0),
-                "body": (issue.get("body") or "")[:200]
-            })
-        
-        return {"issues": issues, "repo": f"{owner}/{repo_name}"}
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching issues: {str(e)}")
-
-@router.get("/api/health")
-async def health_check():
-    """
-    Health check endpoint
-    """
-    return {
-        "status": "ok",
-        "repositories": len(repositories_db)
-    }
+        repos_db[repo_id]["status"] = "Error"
+        repos_db[repo_id]["status_message"] = f"Error: {str(e)}"
+        repos_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        mcp_client.save_repos()

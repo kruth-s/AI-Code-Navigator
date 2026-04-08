@@ -141,7 +141,18 @@ export default function ChatPage() {
             }`}>
               <div className="font-sans text-sm leading-relaxed prose prose-invert max-w-none">
                 {msg.role === 'assistant' ? (
-                  <Streamdown isAnimating={loading && i === messages.length - 1} animated>
+                  <Streamdown 
+                    isAnimating={loading && i === messages.length - 1} 
+                    animated
+                    components={{
+                      p: ({ children }: any) => <div className="mb-4 last:mb-0">{children}</div>,
+                      a: ({ children, node, ...props }: any) => <a {...props} className="text-violet-400 hover:underline">{children}</a>,
+                      // Ensure code blocks and other block elements stay as blocks
+                      ul: ({ children }: any) => <ul className="list-disc pl-4 mb-4">{children}</ul>,
+                      ol: ({ children }: any) => <ol className="list-decimal pl-4 mb-4">{children}</ol>,
+                      li: ({ children }: any) => <li className="mb-1">{children}</li>,
+                    }}
+                  >
                     {msg.content}
                   </Streamdown>
                 ) : (
