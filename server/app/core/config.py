@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     PINECONE_INDEX: Optional[str] = "akaza.codebase"
     GITHUB_TOKEN: Optional[str] = None
     GITHUB_ACCESS_TOKEN: Optional[str] = None
+    DATABASE_URL: Optional[str] = None
 
     class Config:
         env_file = ".env"

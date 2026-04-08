@@ -1,9 +1,14 @@
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { config } from "dotenv";
 
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import { config } from 'dotenv';
+config({ path: ".env" });
 
-config({ path: '.env' });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, // Neon requires SSL
+  },
+});
 
-const sqlite = new Database(process.env.DATABASE_URL!.replace('file:', ''));
-export const db = drizzle(sqlite);
+export const db = drizzle(pool);

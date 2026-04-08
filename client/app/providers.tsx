@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< Updated upstream
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/lib/ThemeContext";
 
@@ -11,4 +12,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </ThemeProvider>
     </SessionProvider>
   );
+=======
+export function Providers({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+>>>>>>> Stashed changes
 }

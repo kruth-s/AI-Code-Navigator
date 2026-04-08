@@ -13,3 +13,7 @@ langchain-community
 gitpython
 sentence-transformers
 chardet
+psycopg2-binary
+SQLAlchemy
+alembic
+
