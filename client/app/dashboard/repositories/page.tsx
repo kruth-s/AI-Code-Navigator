@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FolderGit2,
   Search,
@@ -13,6 +13,9 @@ import {
   Lock,
   Trash2,
   Loader2,
+  Clock,
+  AlertCircle,
+  GitCommit
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useRepository } from "@/lib/RepositoryContext";
@@ -49,17 +52,15 @@ interface ConnectedRepo {
 
 export default function RepositoriesPage() {
   const router = useRouter();
-  const { fetchRepositories, setSelectedRepo } = useRepository();
+  const { repositories, fetchRepositories, setSelectedRepo } = useRepository();
   const [githubRepos, setGithubRepos] = useState<GithubRepo[]>([]);
   const [connectedRepos, setConnectedRepos] = useState<ConnectedRepo[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<
-    "available" | "connected" | "indexed"
-  >("available");
-  const userId =
-    typeof window !== "undefined" ? localStorage.getItem("user_id") : null;
+  const [activeTab, setActiveTab] = useState<"available" | "connected" | "indexed">("available");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const userId = typeof window !== "undefined" ? localStorage.getItem("user_id") : null;
 
   const fetchGithubRepos = useCallback(
     async (showRefreshing = false) => {
@@ -68,25 +69,14 @@ export default function RepositoriesPage() {
       else setLoading(true);
 
       const url = `${BACKEND_URL}/api/github/repos/list?user_id=${userId}`;
-      console.log("Fetching GitHub repos from:", url);
-
       try {
         const res = await fetch(url);
-        console.log("GitHub repos response status:", res.status);
         if (res.ok) {
           const data = await res.json();
-          console.log("GitHub repos data:", data);
           setGithubRepos(data.repositories || []);
-        } else {
-          const errText = await res.text();
-          console.error("Failed to fetch GitHub repos:", res.status, errText);
-          alert(`Failed to fetch repos: ${res.status} ${errText}`);
         }
       } catch (e: any) {
         console.error("Network error fetching repos:", e);
-        alert(
-          `Cannot reach backend at ${BACKEND_URL}.\n\nMake sure the backend is running:\n  cd server && uvicorn app.main:app --reload --port 8000`,
-        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -99,20 +89,13 @@ export default function RepositoriesPage() {
     if (!userId) return;
     try {
       const url = `${BACKEND_URL}/api/users/${userId}/repositories`;
-      console.log("Fetching connected repos from:", url);
       const res = await fetch(url);
-      console.log("Connected repos status:", res.status);
       if (res.ok) {
         const data = await res.json();
-        console.log("Connected repos response:", data);
         setConnectedRepos(data);
-      } else {
-        const err = await res.text();
-        console.error("Failed to fetch connected repos:", err);
       }
     } catch (e) {
       console.error("Error fetching connected repos:", e);
-      // Set empty state instead of crashing
       setConnectedRepos([]);
     }
   }, [userId]);
@@ -164,6 +147,7 @@ export default function RepositoriesPage() {
   };
 
   const handleChat = (repo: ConnectedRepo) => {
+    if (!repo.is_indexed) return;
     setSelectedRepo({
       id: repo.id,
       name: repo.name,
@@ -203,8 +187,8 @@ export default function RepositoriesPage() {
               onClick={async () => {
                 if (confirm('Clear all repositories? This will delete all indexed data.')) {
                   try {
-                    await fetch('http://localhost:8000/api/repos/clear-all', { method: 'POST' });
-                    await fetchRepositories();
+                    await fetch(`${BACKEND_URL}/api/repos/clear-all`, { method: 'POST' });
+                    fetchRepositories();
                   } catch (error) {
                     alert('Failed to clear repositories');
                   }
@@ -225,87 +209,116 @@ export default function RepositoriesPage() {
                 : 'bg-violet-600 hover:bg-violet-700 text-white shadow-violet-500/20'
             }`}
           >
-            Available ({githubRepos.length})
+             Connect Manually
           </button>
         </div>
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input 
-            type="text" 
-            placeholder="Search repositories..." 
-            className="w-full bg-[#16141c] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-violet-500/50 transition-all text-white placeholder:text-gray-600"
-          />
+        
+        {/* Search and Filter */}
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex bg-[#16141c] rounded-lg p-1 border border-white/5">
+            <button 
+              onClick={() => setActiveTab('available')} 
+              className={`px-4 py-1.5 rounded-md text-sm transition-colors ${activeTab === 'available' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Available
+            </button>
+            <button 
+              onClick={() => setActiveTab('connected')} 
+              className={`px-4 py-1.5 rounded-md text-sm transition-colors ${activeTab === 'connected' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Connected
+            </button>
+            <button 
+              onClick={() => setActiveTab('indexed')} 
+              className={`px-4 py-1.5 rounded-md text-sm transition-colors ${activeTab === 'indexed' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Indexed
+            </button>
+          </div>
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search repositories..." 
+              className="w-full bg-[#16141c] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-violet-500/50 transition-all text-white placeholder:text-gray-600"
+            />
+          </div>
         </div>
-        <select className="bg-[#16141c] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-300 focus:outline-none focus:border-violet-500/50">
-          <option>All Statuses</option>
-          <option>Indexed</option>
-          <option>Indexing</option>
-          <option>Errors</option>
-        </select>
       </div>
 
       {/* Repository List */}
-      {activeTab === "available" ? (
-        loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
-          </div>
-        ) : filteredGithub.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            <Github className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p>No repositories found</p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {filteredGithub.map((repo, i) => (
-              <GithubRepoCard
-                key={repo.id}
-                repo={repo}
-                onConnect={handleConnect}
-                delay={i * 0.03}
-              />
-            ))}
-          </div>
-        )
-      ) : activeTab === "indexed" ? (
-        filteredIndexed.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p>No indexed repositories</p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {filteredIndexed.map((repo, i) => (
-              <ConnectedRepoCard
-                key={repo.id}
-                repo={repo}
-                onChat={handleChat}
-                onDisconnect={handleDisconnect}
-                delay={i * 0.03}
-              />
-            ))}
-          </div>
-        )
-      ) : (
-        <div className="grid gap-3">
-          {filteredConnected.length === 0 ? (
+      <div className="min-h-[400px]">
+        {activeTab === "available" && (
+          loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+            </div>
+          ) : filteredGithub.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <Github className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p>No available repositories found</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredGithub.map((repo, i) => (
+                <GithubRepoCard
+                  key={repo.id}
+                  repo={repo}
+                  onConnect={handleConnect}
+                  delay={i * 0.03}
+                />
+              ))}
+            </div>
+          )
+        )}
+        
+        {activeTab === "indexed" && (
+          filteredIndexed.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p>No indexed repositories</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredIndexed.map((repo, i) => (
+                <ConnectedRepoCard
+                  key={repo.id}
+                  repo={repo}
+                  onChat={handleChat}
+                  onDisconnect={handleDisconnect}
+                  delay={i * 0.03}
+                />
+              ))}
+            </div>
+          )
+        )}
+
+        {activeTab === "connected" && (
+          filteredConnected.length === 0 ? (
             <div className="text-center py-20 text-gray-500">
               <FolderGit2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
               <p>No connected repositories</p>
             </div>
           ) : (
-            filteredConnected.map((repo, i) => (
-              <ConnectedRepoCard
-                key={repo.id}
-                repo={repo}
-                onChat={handleChat}
-                onDisconnect={handleDisconnect}
-                delay={i * 0.03}
-              />
-            ))
-          )}
-        </div>
-      )}
+            <div className="grid gap-3">
+              {filteredConnected.map((repo, i) => (
+                <ConnectedRepoCard
+                  key={repo.id}
+                  repo={repo}
+                  onChat={handleChat}
+                  onDisconnect={handleDisconnect}
+                  delay={i * 0.03}
+                />
+              ))}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Modal is rendered outside the lists */}
+      <AddRepoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }
@@ -323,39 +336,22 @@ function GithubRepoCard({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      onClick={handleClick}
-      className={`bg-[#16141c] border border-white/5 rounded-xl p-6 transition-all group ${
-        repo.status === 'Indexed' 
-          ? 'hover:border-violet-500/30 cursor-pointer hover:shadow-lg hover:shadow-violet-500/10' 
-          : ''
-      }`}
+      transition={{ delay }}
+      className={`bg-[#16141c] border border-white/5 rounded-xl p-6 transition-all group`}
     >
       <div className="flex items-start justify-between">
         <div className="flex gap-4">
           <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/5">
-              {repo.status === 'Indexing' ? (
-                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <FolderGit2 className="w-6 h-6 text-gray-400 group-hover:text-violet-400 transition-colors" />
-              )}
+            <Github className="w-6 h-6 text-gray-400 group-hover:text-violet-400 transition-colors" />
           </div>
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h3 className="font-semibold text-lg text-white group-hover:text-violet-300 transition-colors">{repo.name}</h3>
-              <Badge status={repo.status} />
             </div>
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span className="flex items-center gap-1"><GitCommit className="w-3.5 h-3.5" /> {repo.branch}</span>
-              <span className="flex items-center gap-1"><Github className="w-3.5 h-3.5" /> {repo.language}</span>
-              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {repo.lastSynced}</span>
-            </div>
-            {repo.status === 'Indexed' && (
-              <p className="text-xs text-violet-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                Click to chat about this repository →
-              </p>
+            {repo.description && (
+              <p className="text-sm text-gray-500 mb-2 truncate max-w-sm">{repo.description}</p>
             )}
-            <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
               {repo.language && (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-blue-400" />
@@ -367,10 +363,87 @@ function GithubRepoCard({
                 {repo.stargazers_count}
               </span>
               <span className="flex items-center gap-1">
-                <Github className="w-3 h-3" />
+                {repo.private ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
                 {repo.private ? "Private" : "Public"}
               </span>
+              <span className="flex items-center gap-1">
+                <RefreshCw className="w-3 h-3" />
+                {new Date(repo.updated_at).toLocaleDateString()}
+              </span>
             </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {!repo.is_connected && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onConnect(repo);
+              }}
+              className="px-3 py-1.5 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Connect
+            </button>
+          )}
+          {repo.is_connected && (
+            <span className="px-3 py-1.5 text-emerald-400 text-sm flex items-center gap-2 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              Connected
+            </span>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function ConnectedRepoCard({
+  repo,
+  onChat,
+  onDisconnect,
+  delay,
+}: {
+  repo: ConnectedRepo;
+  onChat: (repo: ConnectedRepo) => void;
+  onDisconnect: (id: string) => void;
+  delay: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      onClick={() => repo.is_indexed && onChat(repo)}
+      className={`bg-[#16141c] border border-white/5 rounded-xl p-6 transition-all group ${
+        repo.is_indexed 
+          ? 'hover:border-violet-500/30 cursor-pointer hover:shadow-lg hover:shadow-violet-500/10' 
+          : ''
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex gap-4">
+          <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/5">
+              {!repo.is_indexed ? (
+                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <FolderGit2 className="w-6 h-6 text-gray-400 group-hover:text-violet-400 transition-colors" />
+              )}
+          </div>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="font-semibold text-lg text-white group-hover:text-violet-300 transition-colors">{repo.name}</h3>
+              <Badge status={repo.is_indexed ? "Indexed" : "Indexing"} />
+            </div>
+            {repo.description && (
+              <p className="text-sm text-gray-500 mb-2 truncate max-w-sm">{repo.description}</p>
+            )}
+            {repo.is_indexed && (
+              <p className="text-xs text-violet-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                Click to chat about this repository →
+              </p>
+            )}
           </div>
         </div>
 
@@ -378,22 +451,14 @@ function GithubRepoCard({
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                // Add delete or options functionality here
+                onDisconnect(repo.id);
               }}
-              className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors"
+              className="p-2 hover:bg-red-500/10 rounded-lg text-gray-500 hover:text-red-400 transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Connect
+              <Trash2 className="w-4 h-4" />
             </button>
-          )}
         </div>
       </div>
-
-      {repo.status === 'Indexing' && (
-          <div className="mt-4 w-full h-1 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-violet-500 rounded-full" style={{ width: `${repo.progress}%` }}></div>
-          </div>
-      )}
     </motion.div>
   );
 }
@@ -426,29 +491,25 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   const [repoId, setRepoId] = useState<string | null>(null);
   const { fetchRepositories } = useRepository();
 
-  // Poll for status updates
   useEffect(() => {
     if (!repoId || !loading) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/repos');
+        const res = await fetch(`${BACKEND_URL}/api/repos`);
         if (res.ok) {
           const repos = await res.json();
           const repo = repos.find((r: any) => r.id === repoId);
           
           if (repo) {
-            // Add new status message if it's different from the last one
             if (repo.status_message && (!statusMessages.length || statusMessages[statusMessages.length - 1] !== repo.status_message)) {
               setStatusMessages(prev => [...prev, repo.status_message]);
             }
             
-            // Check if ingestion is complete
             if (repo.status === 'Indexed' || repo.status === 'Error') {
               setLoading(false);
               clearInterval(interval);
               
-              // Wait a bit to show final message, then close
               setTimeout(() => {
                 onClose();
                 setUrl("");
@@ -462,7 +523,7 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
       } catch (e) {
         console.error('Error polling status:', e);
       }
-    }, 1000); // Poll every second
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [repoId, loading, statusMessages, onClose, fetchRepositories]);
@@ -475,7 +536,7 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
     setStatusMessages([]);
     
     try {
-      const res = await fetch('http://localhost:8000/api/ingest', {
+      const res = await fetch(`${BACKEND_URL}/api/ingest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_url: url })
