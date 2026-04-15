@@ -1,52 +1,142 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Plus, Github, ArrowRight, Loader2, GitBranch, Database, FileText } from "lucide-react";
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import {
+  Plus,
+  Github,
+  ArrowRight,
+  Loader2,
+  Database,
+  FileText,
+  LogOut,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+interface User {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  created_at: string | null;
+}
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [user, setUser] = useState<User | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const handleConnectGithub = async () => {
-    setIsConnecting(true);
-    try {
-      await signIn("github");
-    } catch (error) {
-      console.error("GitHub connection failed", error);
-      setIsConnecting(false);
+  useEffect(() => {
+    const sessionToken = searchParams.get("session_token");
+    const userId = searchParams.get("user_id");
+
+    if (sessionToken && userId) {
+      localStorage.setItem("session_token", sessionToken);
+      localStorage.setItem("user_id", userId);
+      window.history.replaceState({}, "", "/dashboard");
     }
+
+    const storedUserId = localStorage.getItem("user_id");
+    if (storedUserId) {
+      fetchUser(storedUserId);
+    }
+  }, [searchParams, router]);
+
+  const fetchUser = async (userId: string) => {
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/api/auth/github/user/${userId}`,
+      );
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        localStorage.clear();
+        router.push("/login");
+      }
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      router.push("/login");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    router.push("/login");
+  };
+
+  const handleConnectGithub = () => {
+    setIsConnecting(true);
+    window.location.href = "/dashboard/repositories";
+  };
+
+  const handleGoToRepos = () => {
+    window.location.href = "/dashboard/repositories";
   };
 
   return (
     <div className="max-w-5xl mx-auto space-y-12">
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold tracking-tight"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Welcome, Developer
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            Select a repository to start analyzing your codebase.
-          </motion.p>
+        <div className="flex items-center gap-4">
+          {user?.image ? (
+            <motion.img
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              src={user.image}
+              alt="GitHub Avatar"
+              className="h-14 w-14 rounded-full border-2 border-violet-500/30 shadow-lg"
+            />
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-600/20 border-2 border-violet-500/30"
+            >
+              <span className="text-xl font-bold text-violet-400">
+                {user?.name?.charAt(0) || "U"}
+              </span>
+            </motion.div>
+          )}
+          <div className="space-y-1">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl font-bold tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Welcome, {user?.name || "Developer"}
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {user?.email || "Select a repository to start analyzing your codebase."}
+            </motion.p>
+          </div>
         </div>
         
         <motion.div
            initial={{ opacity: 0, x: 20 }}
            animate={{ opacity: 1, x: 0 }}
            transition={{ delay: 0.2 }}
+           className="flex gap-3"
         >
           <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+          <button
+            onClick={handleGoToRepos}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-colors shadow-lg"
             style={{
               backgroundColor: 'var(--text-primary)',
@@ -59,8 +149,8 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      {/* Empty State / Connect Repo */}
-      <motion.div 
+      {/* Connect Repository Card */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -71,7 +161,7 @@ export default function DashboardPage() {
          
          <div className="p-12 flex flex-col items-center text-center relative z-10">
             <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-2xl"
+              className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-2xl transition-colors group-hover:bg-white/5"
               style={{ backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border-secondary)' }}
             >
                <Github className="w-10 h-10" style={{ color: 'var(--text-primary)' }} />
@@ -85,14 +175,14 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
                <button 
                  onClick={handleConnectGithub}
-                 className="flex-1 flex items-center justify-center gap-2 h-11 text-white rounded-lg font-medium transition-all active:scale-95"
+                 className="flex-1 flex items-center justify-center gap-2 h-11 text-white rounded-lg font-medium transition-all active:scale-95 hover:bg-violet-700"
                  style={{ backgroundColor: 'var(--accent)' }}
                >
                  {isConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
                  Connect GitHub
                </button>
                <button
-                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-lg font-medium transition-colors"
+                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-lg font-medium transition-colors hover:bg-white/5"
                  style={{ border: '1px solid var(--border-secondary)', color: 'var(--text-primary)' }}
                >
                  Import Manually
@@ -104,7 +194,7 @@ export default function DashboardPage() {
       {/* Recent Activity Grid */}
       <div className="space-y-6">
         <h3 className="text-lg font-semibold" style={{ color: 'var(--text-secondary)' }}>Recent Activity</h3>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
            <ActivityCard 
              title="auth-service"
              subtitle="Updated 2h ago"
@@ -132,20 +222,32 @@ export default function DashboardPage() {
   );
 }
 
-function ActivityCard({ title, subtitle, status, icon, delay }: any) {
+function ActivityCard({
+  title,
+  subtitle,
+  status,
+  icon,
+  delay,
+}: {
+  title: string;
+  subtitle: string;
+  status: string;
+  icon: React.ReactNode;
+  delay: number;
+}) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="p-5 rounded-xl transition-all cursor-pointer group"
+      className="p-5 rounded-xl transition-all cursor-pointer group hover:border-violet-500/30"
       style={{
         backgroundColor: 'var(--card-bg)',
         border: '1px solid var(--border-primary)',
       }}
     >
        <div className="flex justify-between items-start mb-4">
-          <div className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--bg-hover)' }}>
+          <div className="p-2 rounded-lg transition-colors group-hover:bg-white/10" style={{ backgroundColor: 'var(--bg-hover)' }}>
              {icon}
           </div>
           <span className={`text-xs px-2 py-1 rounded-full border ${

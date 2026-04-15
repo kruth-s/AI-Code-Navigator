@@ -1,31 +1,183 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { FolderGit2, Search, Plus, MoreVertical, GitCommit, Calendar, Clock, Github, AlertCircle, CheckCircle2, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import {
+  FolderGit2,
+  Search,
+  Plus,
+  Github,
+  CheckCircle2,
+  RefreshCw,
+  Star,
+  Globe,
+  Lock,
+  Trash2,
+  Loader2,
+  Clock,
+  AlertCircle,
+  GitCommit
+} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { useRepository } from "@/lib/RepositoryContext";
 import { useRouter } from "next/navigation";
 
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+interface GithubRepo {
+  id: string;
+  name: string;
+  full_name: string;
+  description: string;
+  html_url: string;
+  private: boolean;
+  language: string | null;
+  stargazers_count: number;
+  updated_at: string;
+  is_connected: boolean;
+}
+
+interface ConnectedRepo {
+  id: string;
+  name: string;
+  github_id: string | null;
+  description: string | null;
+  html_url: string | null;
+  private: boolean;
+  is_indexed: boolean;
+  indexed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function RepositoriesPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { repositories, fetchRepositories } = useRepository();
   const router = useRouter();
+  const { repositories, fetchRepositories, setSelectedRepo } = useRepository();
+  const [githubRepos, setGithubRepos] = useState<GithubRepo[]>([]);
+  const [connectedRepos, setConnectedRepos] = useState<ConnectedRepo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"available" | "connected" | "indexed">("available");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const userId = typeof window !== "undefined" ? localStorage.getItem("user_id") : null;
+
+  const fetchGithubRepos = useCallback(
+    async (showRefreshing = false) => {
+      if (!userId) return;
+      if (showRefreshing) setRefreshing(true);
+      else setLoading(true);
+
+      const url = `${BACKEND_URL}/api/github/repos/list?user_id=${userId}`;
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setGithubRepos(data.repositories || []);
+        }
+      } catch (e: any) {
+        console.error("Network error fetching repos:", e);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [userId],
+  );
+
+  const fetchConnectedRepos = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const url = `${BACKEND_URL}/api/users/${userId}/repositories`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setConnectedRepos(data);
+      }
+    } catch (e) {
+      console.error("Error fetching connected repos:", e);
+      setConnectedRepos([]);
+    }
+  }, [userId]);
 
   useEffect(() => {
-    fetchRepositories();
-    // Poll every 5 seconds for status updates
-    const interval = setInterval(fetchRepositories, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    if (userId) {
+      fetchGithubRepos();
+      fetchConnectedRepos();
+      fetchRepositories();
+    }
+  }, [userId, fetchGithubRepos, fetchConnectedRepos, fetchRepositories]);
 
+  const handleConnect = async (repo: GithubRepo) => {
+    if (!userId) return;
+    try {
+      const res = await fetch(
+        `${BACKEND_URL}/api/github/repos/connect/${repo.id}?user_id=${userId}`,
+        { method: "POST" },
+      );
+      if (res.ok) {
+        await fetchGithubRepos();
+        await fetchConnectedRepos();
+        await fetchRepositories();
+      } else {
+        const err = await res.json();
+        alert(err.detail || "Failed to connect repository");
+      }
+    } catch (e) {
+      alert("Error connecting to backend");
+    }
+  };
+
+  const handleDisconnect = async (repoDbId: string) => {
+    if (!userId) return;
+    if (!confirm("Disconnect this repository?")) return;
+    try {
+      const res = await fetch(
+        `${BACKEND_URL}/api/github/repos/disconnect/${repoDbId}?user_id=${userId}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) {
+        await fetchGithubRepos();
+        await fetchConnectedRepos();
+        await fetchRepositories();
+      }
+    } catch (e) {
+      alert("Error disconnecting repository");
+    }
+  };
+
+  const handleChat = (repo: ConnectedRepo) => {
+    if (!repo.is_indexed) return;
+    setSelectedRepo({
+      id: repo.id,
+      name: repo.name,
+      url: repo.html_url || "",
+      status: repo.is_indexed ? "Indexed" : "Pending",
+      lastSynced: repo.updated_at || "",
+      branch: "main",
+      language: "Unknown",
+    });
+    router.push("/dashboard/chat");
+  };
+
+  const filteredGithub = githubRepos.filter((r) =>
+    r.full_name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+  const filteredConnected = connectedRepos.filter((r) =>
+    r.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+  const filteredIndexed = connectedRepos.filter(
+    (r) =>
+      r.is_indexed && r.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Repositories</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>
+          <h1 className="text-2xl font-bold tracking-tight">Repositories</h1>
+          <p className="text-gray-400">
             Manage your connected codebases ({repositories.filter(r => r.status === 'Indexed').length}/5 indexed)
           </p>
         </div>
@@ -35,8 +187,8 @@ export default function RepositoriesPage() {
               onClick={async () => {
                 if (confirm('Clear all repositories? This will delete all indexed data.')) {
                   try {
-                    await fetch('http://localhost:8000/api/repos/clear-all', { method: 'POST' });
-                    await fetchRepositories();
+                    await fetch(`${BACKEND_URL}/api/repos/clear-all`, { method: 'POST' });
+                    fetchRepositories();
                   } catch (error) {
                     alert('Failed to clear repositories');
                   }
@@ -51,105 +203,244 @@ export default function RepositoriesPage() {
           <button 
             onClick={() => setIsModalOpen(true)}
             disabled={repositories.filter(r => r.status === 'Indexed').length >= 5}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors shadow-lg text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: 'var(--accent)', boxShadow: `0 4px 14px var(--accent-glow)` }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors shadow-lg ${
+              repositories.filter(r => r.status === 'Indexed').length >= 5
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-violet-600 hover:bg-violet-700 text-white shadow-violet-500/20'
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            Add Repository
+             Connect Manually
           </button>
         </div>
-      </div>
-
-      {/* Filter/Search */}
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Search repositories..." 
-            className="w-full rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-all"
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              border: '1px solid var(--border-secondary)',
-              color: 'var(--text-primary)',
-            }}
-          />
+        
+        {/* Search and Filter */}
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex bg-[#16141c] rounded-lg p-1 border border-white/5">
+            <button 
+              onClick={() => setActiveTab('available')} 
+              className={`px-4 py-1.5 rounded-md text-sm transition-colors ${activeTab === 'available' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Available
+            </button>
+            <button 
+              onClick={() => setActiveTab('connected')} 
+              className={`px-4 py-1.5 rounded-md text-sm transition-colors ${activeTab === 'connected' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Connected
+            </button>
+            <button 
+              onClick={() => setActiveTab('indexed')} 
+              className={`px-4 py-1.5 rounded-md text-sm transition-colors ${activeTab === 'indexed' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Indexed
+            </button>
+          </div>
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search repositories..." 
+              className="w-full bg-[#16141c] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-violet-500/50 transition-all text-white placeholder:text-gray-600"
+            />
+          </div>
         </div>
-        <select
-          className="rounded-lg px-4 py-2.5 text-sm focus:outline-none"
-          style={{
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border-secondary)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <option>All Statuses</option>
-          <option>Indexed</option>
-          <option>Indexing</option>
-          <option>Errors</option>
-        </select>
       </div>
 
       {/* Repository List */}
-      <div className="grid gap-4">
-        {repositories.map((repo, i) => (
-          <RepositoryCard key={repo.id} repo={repo} index={i} />
-        ))}
+      <div className="min-h-[400px]">
+        {activeTab === "available" && (
+          loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+            </div>
+          ) : filteredGithub.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <Github className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p>No available repositories found</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredGithub.map((repo, i) => (
+                <GithubRepoCard
+                  key={repo.id}
+                  repo={repo}
+                  onConnect={handleConnect}
+                  delay={i * 0.03}
+                />
+              ))}
+            </div>
+          )
+        )}
+        
+        {activeTab === "indexed" && (
+          filteredIndexed.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p>No indexed repositories</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredIndexed.map((repo, i) => (
+                <ConnectedRepoCard
+                  key={repo.id}
+                  repo={repo}
+                  onChat={handleChat}
+                  onDisconnect={handleDisconnect}
+                  delay={i * 0.03}
+                />
+              ))}
+            </div>
+          )
+        )}
+
+        {activeTab === "connected" && (
+          filteredConnected.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <FolderGit2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p>No connected repositories</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredConnected.map((repo, i) => (
+                <ConnectedRepoCard
+                  key={repo.id}
+                  repo={repo}
+                  onChat={handleChat}
+                  onDisconnect={handleDisconnect}
+                  delay={i * 0.03}
+                />
+              ))}
+            </div>
+          )
+        )}
       </div>
+
+      {/* Modal is rendered outside the lists */}
       <AddRepoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }
 
-function RepositoryCard({ repo, index }: { repo: any, index: number }) {
-  const router = useRouter();
-  const { setSelectedRepo } = useRepository();
-  
-  const handleClick = () => {
-    if (repo.status === 'Indexed') {
-      setSelectedRepo(repo);
-      router.push('/dashboard/chat');
-    }
-  };
-  
+function GithubRepoCard({
+  repo,
+  onConnect,
+  delay,
+}: {
+  repo: GithubRepo;
+  onConnect: (repo: GithubRepo) => void;
+  delay: number;
+}) {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      onClick={handleClick}
-      className={`rounded-xl p-6 transition-all group ${
-        repo.status === 'Indexed' ? 'cursor-pointer' : ''
-      }`}
-      style={{
-        backgroundColor: 'var(--card-bg)',
-        border: '1px solid var(--border-primary)',
-      }}
+      transition={{ delay }}
+      className={`bg-[#16141c] border border-white/5 rounded-xl p-6 transition-all group`}
     >
       <div className="flex items-start justify-between">
         <div className="flex gap-4">
-          <div
-            className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
-            style={{ backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border-primary)' }}
-          >
-              {repo.status === 'Indexing' ? (
-                <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+          <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/5">
+            <Github className="w-6 h-6 text-gray-400 group-hover:text-violet-400 transition-colors" />
+          </div>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="font-semibold text-lg text-white group-hover:text-violet-300 transition-colors">{repo.name}</h3>
+            </div>
+            {repo.description && (
+              <p className="text-sm text-gray-500 mb-2 truncate max-w-sm">{repo.description}</p>
+            )}
+            <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+              {repo.language && (
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-blue-400" />
+                  {repo.language}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Star className="w-3 h-3" />
+                {repo.stargazers_count}
+              </span>
+              <span className="flex items-center gap-1">
+                {repo.private ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                {repo.private ? "Private" : "Public"}
+              </span>
+              <span className="flex items-center gap-1">
+                <RefreshCw className="w-3 h-3" />
+                {new Date(repo.updated_at).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {!repo.is_connected && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onConnect(repo);
+              }}
+              className="px-3 py-1.5 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Connect
+            </button>
+          )}
+          {repo.is_connected && (
+            <span className="px-3 py-1.5 text-emerald-400 text-sm flex items-center gap-2 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              Connected
+            </span>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function ConnectedRepoCard({
+  repo,
+  onChat,
+  onDisconnect,
+  delay,
+}: {
+  repo: ConnectedRepo;
+  onChat: (repo: ConnectedRepo) => void;
+  onDisconnect: (id: string) => void;
+  delay: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      onClick={() => repo.is_indexed && onChat(repo)}
+      className={`bg-[#16141c] border border-white/5 rounded-xl p-6 transition-all group ${
+        repo.is_indexed 
+          ? 'hover:border-violet-500/30 cursor-pointer hover:shadow-lg hover:shadow-violet-500/10' 
+          : ''
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex gap-4">
+          <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/5">
+              {!repo.is_indexed ? (
+                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
               ) : (
-                <FolderGit2 className="w-6 h-6 transition-colors" style={{ color: 'var(--text-secondary)' }} />
+                <FolderGit2 className="w-6 h-6 text-gray-400 group-hover:text-violet-400 transition-colors" />
               )}
           </div>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h3 className="font-semibold text-lg transition-colors" style={{ color: 'var(--text-primary)' }}>{repo.name}</h3>
-              <Badge status={repo.status} />
+              <h3 className="font-semibold text-lg text-white group-hover:text-violet-300 transition-colors">{repo.name}</h3>
+              <Badge status={repo.is_indexed ? "Indexed" : "Indexing"} />
             </div>
-            <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-muted)' }}>
-              <span className="flex items-center gap-1"><GitCommit className="w-3.5 h-3.5" /> {repo.branch}</span>
-              <span className="flex items-center gap-1"><Github className="w-3.5 h-3.5" /> {repo.language}</span>
-              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {repo.lastSynced}</span>
-            </div>
-            {repo.status === 'Indexed' && (
-              <p className="text-xs mt-2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--text-accent)' }}>
+            {repo.description && (
+              <p className="text-sm text-gray-500 mb-2 truncate max-w-sm">{repo.description}</p>
+            )}
+            {repo.is_indexed && (
+              <p className="text-xs text-violet-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 Click to chat about this repository →
               </p>
             )}
@@ -160,20 +451,14 @@ function RepositoryCard({ repo, index }: { repo: any, index: number }) {
             <button 
               onClick={(e) => {
                 e.stopPropagation();
+                onDisconnect(repo.id);
               }}
-              className="p-2 rounded-lg transition-colors"
-              style={{ color: 'var(--text-secondary)' }}
+              className="p-2 hover:bg-red-500/10 rounded-lg text-gray-500 hover:text-red-400 transition-colors"
             >
-              <MoreVertical className="w-5 h-5" />
+              <Trash2 className="w-4 h-4" />
             </button>
         </div>
       </div>
-
-      {repo.status === 'Indexing' && (
-          <div className="mt-4 w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-hover)' }}>
-            <div className="h-full rounded-full" style={{ width: `${repo.progress}%`, backgroundColor: 'var(--accent)' }}></div>
-          </div>
-      )}
     </motion.div>
   );
 }
@@ -206,13 +491,12 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   const [repoId, setRepoId] = useState<string | null>(null);
   const { fetchRepositories } = useRepository();
 
-  // Poll for status updates
   useEffect(() => {
     if (!repoId || !loading) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/repos');
+        const res = await fetch(`${BACKEND_URL}/api/repos`);
         if (res.ok) {
           const repos = await res.json();
           const repo = repos.find((r: any) => r.id === repoId);
@@ -252,7 +536,7 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
     setStatusMessages([]);
     
     try {
-      const res = await fetch('http://localhost:8000/api/ingest', {
+      const res = await fetch(`${BACKEND_URL}/api/ingest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_url: url })
@@ -297,32 +581,23 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
             initial={{ opacity: 0, scale: 0.95 }} 
             animate={{ opacity: 1, scale: 1 }} 
             exit={{ opacity: 0, scale: 0.95 }} 
-            className="relative w-full max-w-lg rounded-2xl p-6 shadow-2xl"
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              border: '1px solid var(--border-secondary)',
-            }}
+            className="relative w-full max-w-lg bg-[#16141c] border border-white/10 rounded-2xl p-6 shadow-2xl"
           >
-            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Connect Repository</h2>
+            <h2 className="text-xl font-bold mb-4">Connect Repository</h2>
             
             {!loading ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Repository URL</label>
+                  <label className="block text-sm text-gray-400 mb-1.5">Repository URL</label>
                   <div className="relative">
-                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
                     <input 
                       autoFocus
                       type="url" 
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://github.com/username/repo"
-                      className="w-full rounded-lg pl-10 pr-4 py-2.5 focus:outline-none transition-all"
-                      style={{
-                        backgroundColor: 'var(--bg-primary)',
-                        border: '1px solid var(--border-secondary)',
-                        color: 'var(--text-primary)',
-                      }}
+                      className="w-full bg-[#0f0f11] border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-violet-500/50 transition-all placeholder:text-gray-600"
                     />
                   </div>
                 </div>
@@ -330,15 +605,13 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                   <button 
                     type="button" 
                     onClick={handleClose}
-                    className="px-4 py-2 rounded-lg transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    style={{ backgroundColor: 'var(--accent)' }}
+                    className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                   >
                     Connect
                   </button>
@@ -346,23 +619,20 @@ function AddRepoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
               </form>
             ) : (
               <div className="space-y-4">
-                <div
-                  className="rounded-lg p-4 max-h-64 overflow-y-auto"
-                  style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-secondary)' }}
-                >
+                <div className="bg-[#0f0f11] border border-white/10 rounded-lg p-4 max-h-64 overflow-y-auto">
                   <div className="space-y-1 font-mono text-sm">
                     {statusMessages.map((msg, i) => (
-                      <div key={i} className="whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
+                      <div key={i} className="text-gray-300 whitespace-pre-wrap">
                         {msg}
                       </div>
                     ))}
-                    <div className="flex items-center gap-2 mt-2" style={{ color: 'var(--text-accent)' }}>
-                      <div className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--text-accent)', borderTopColor: 'transparent' }} />
+                    <div className="flex items-center gap-2 text-violet-400 mt-2">
+                      <div className="w-3 h-3 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
                       <span>Processing...</span>
                     </div>
                   </div>
                 </div>
-                <div className="text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <div className="text-center text-sm text-gray-400">
                   Please wait while we index your repository
                 </div>
               </div>

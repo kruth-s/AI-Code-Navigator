@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 interface Repository {
   id: string;
@@ -21,7 +27,9 @@ interface RepositoryContextType {
   fetchRepositories: () => Promise<void>;
 }
 
-const RepositoryContext = createContext<RepositoryContextType | undefined>(undefined);
+const RepositoryContext = createContext<RepositoryContextType | undefined>(
+  undefined,
+);
 
 export function RepositoryProvider({ children }: { children: ReactNode }) {
   const [repositories, setRepositoriesState] = useState<Repository[]>([]);
@@ -29,21 +37,21 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
 
   // Load from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem('repositories');
+    const stored = localStorage.getItem("repositories");
     if (stored) {
       try {
         setRepositoriesState(JSON.parse(stored));
       } catch (e) {
-        console.error('Failed to parse stored repositories', e);
+        console.error("Failed to parse stored repositories", e);
       }
     }
-    
-    const storedSelected = localStorage.getItem('selectedRepo');
+
+    const storedSelected = localStorage.getItem("selectedRepo");
     if (storedSelected) {
       try {
         setSelectedRepo(JSON.parse(storedSelected));
       } catch (e) {
-        console.error('Failed to parse selected repo', e);
+        console.error("Failed to parse selected repo", e);
       }
     }
   }, []);
@@ -51,30 +59,44 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
   // Save to localStorage whenever repositories change
   const setRepositories = (repos: Repository[]) => {
     setRepositoriesState(repos);
-    localStorage.setItem('repositories', JSON.stringify(repos));
+    localStorage.setItem("repositories", JSON.stringify(repos));
   };
 
   // Save selected repo to localStorage
   const setSelectedRepoWithStorage = (repo: Repository | null) => {
     setSelectedRepo(repo);
     if (repo) {
-      localStorage.setItem('selectedRepo', JSON.stringify(repo));
+      localStorage.setItem("selectedRepo", JSON.stringify(repo));
     } else {
-      localStorage.removeItem('selectedRepo');
+      localStorage.removeItem("selectedRepo");
     }
   };
 
   // Fetch repositories from backend
   const fetchRepositories = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${apiUrl}/api/repos`);
+      const userId = localStorage.getItem("user_id");
+      if (!userId) return;
+      const apiUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/users/${userId}/repositories`);
       if (res.ok) {
         const data = await res.json();
-        setRepositories(data);
+        // Map DB repos to context shape
+        const mapped = data.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          url: r.html_url || "",
+          status: r.is_indexed ? "Indexed" : "Pending",
+          lastSynced: r.updated_at || "",
+          branch: "main",
+          language: "Unknown",
+        }));
+        setRepositories(mapped);
       }
     } catch (e) {
-      console.error('Failed to fetch repos', e);
+      console.error("Failed to fetch repos:", e);
+      // Don't throw - just use empty state
     }
   };
 
@@ -96,7 +118,7 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
 export function useRepository() {
   const context = useContext(RepositoryContext);
   if (context === undefined) {
-    throw new Error('useRepository must be used within a RepositoryProvider');
+    throw new Error("useRepository must be used within a RepositoryProvider");
   }
   return context;
 }
