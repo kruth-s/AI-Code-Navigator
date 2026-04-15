@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useRepository } from "@/lib/RepositoryContext";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
@@ -86,6 +87,8 @@ export default function DashboardPage() {
   const handleGoToRepos = () => {
     window.location.href = "/dashboard/repositories";
   };
+
+  const { repositories } = useRepository();
 
   return (
     <div className="max-w-5xl mx-auto space-y-12">
@@ -204,27 +207,20 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <h3 className="text-lg font-semibold" style={{ color: 'var(--text-secondary)' }}>Recent Activity</h3>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-           <ActivityCard 
-             title="auth-service"
-             subtitle="Updated 2h ago"
-             status="Indexed"
-             icon={<Database className="w-5 h-5 text-emerald-400" />}
-             delay={0.4}
-           />
-           <ActivityCard 
-             title="frontend-v2"
-             subtitle="Indexing... 85%"
-             status="Processing"
-             icon={<Loader2 className="w-5 h-5 text-blue-400 animate-spin" />}
-             delay={0.5}
-           />
-           <ActivityCard 
-             title="legacy-api"
-             subtitle="Updated yesterday"
-             status="Indexed"
-             icon={<FileText className="w-5 h-5" style={{ color: 'var(--text-accent)' }} />}
-             delay={0.6}
-           />
+          {repositories.length === 0 ? (
+             <div className="col-span-3 text-sm text-gray-500 py-4">No repositories connected yet. Begin by connecting one above.</div>
+          ) : (
+             repositories.slice(0, 3).map((repo, idx) => (
+                <ActivityCard 
+                  key={repo.id}
+                  title={repo.name}
+                  subtitle={repo.lastSynced ? `Updated ${new Date(repo.lastSynced).toLocaleDateString()}` : "Processing..."}
+                  status={repo.status === "Indexed" ? "Indexed" : "Processing"}
+                  icon={repo.status === "Indexed" ? <Database className="w-5 h-5 text-emerald-400" /> : <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />}
+                  delay={0.4 + (idx * 0.1)}
+                />
+             ))
+          )}
         </div>
       </div>
     </div>

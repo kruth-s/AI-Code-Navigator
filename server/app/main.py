@@ -52,11 +52,13 @@ from .api import routes_simple
 from .api import users as user_routes
 from .api import auth as auth_routes
 from .api import github_repos as github_repos_routes
+from .api import code_reviewer as code_reviewer_routes
 
 app.include_router(routes_simple.router)
 app.include_router(user_routes.router)
 app.include_router(auth_routes.router)
 app.include_router(github_repos_routes.router)
+app.include_router(code_reviewer_routes.router)
 
 # Mount the MCP server at /mcp
 # This exposes the MCP Streamable HTTP endpoint at http://localhost:8000/mcp

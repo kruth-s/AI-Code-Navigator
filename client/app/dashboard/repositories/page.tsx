@@ -142,9 +142,23 @@ export default function RepositoriesPage() {
         { method: "POST" },
       );
       if (res.ok) {
+        // Fire off the ingestion task to start indexing into Pinecone immediately!
+        try {
+          await fetch(`${BACKEND_URL}/api/ingest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ repo_url: repo.html_url })
+          });
+        } catch(e) {
+          console.error("Failed to trigger indexing", e);
+        }
+        
         await fetchGithubRepos();
         await fetchConnectedRepos();
         await fetchRepositories();
+        
+        // Switch to the Indexed tab so user can see it processing
+        setActiveTab("indexed");
       } else {
         const err = await res.json();
         alert(err.detail || "Failed to connect repository");
