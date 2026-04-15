@@ -31,6 +31,14 @@ export default function DashboardPage() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
+    // Try to load synchronously on mount to avoid flashing "Developer"
+    const cachedUser = localStorage.getItem("user_cache");
+    if (cachedUser) {
+      try {
+        setUser(JSON.parse(cachedUser));
+      } catch (e) {}
+    }
+
     const sessionToken = searchParams.get("session_token");
     const userId = searchParams.get("user_id");
 
@@ -41,7 +49,7 @@ export default function DashboardPage() {
     }
 
     const storedUserId = localStorage.getItem("user_id");
-    if (storedUserId) {
+    if (storedUserId && !cachedUser) {
       fetchUser(storedUserId);
     }
   }, [searchParams, router]);
@@ -54,13 +62,14 @@ export default function DashboardPage() {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        localStorage.setItem("user_cache", JSON.stringify(userData));
       } else {
         localStorage.clear();
         router.push("/login");
       }
     } catch (error) {
       console.error("Failed to fetch user:", error);
-      router.push("/login");
+      // Removed router.push("/login") here to safely ignore network errors if user is already cached
     }
   };
 

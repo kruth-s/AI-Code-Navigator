@@ -106,6 +106,7 @@ async def github_callback(
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "Accept": "application/json",
+                "User-Agent": "AI-Code-Navigator",
             }
         )
         
@@ -126,14 +127,20 @@ async def github_callback(
                 headers={
                     "Authorization": f"Bearer {access_token}",
                     "Accept": "application/json",
+                    "User-Agent": "AI-Code-Navigator",
                 }
             )
             emails = emails_response.json()
-            # Get primary email
-            for email_obj in emails:
-                if email_obj.get("primary"):
-                    email = email_obj.get("email")
-                    break
+            
+            # Ensure it's a list (if GitHub returns an error dict, iterating over it causes errors)
+            if isinstance(emails, list):
+                # Get primary email
+                for email_obj in emails:
+                    if isinstance(email_obj, dict) and email_obj.get("primary"):
+                        email = email_obj.get("email")
+                        break
+            else:
+                print(f"⚠️ Warning: Failed to fetch emails from GitHub API. Response: {emails}")
     
     # Check if user already exists
     existing_user = user_crud.get_user_by_github(db, github_id)

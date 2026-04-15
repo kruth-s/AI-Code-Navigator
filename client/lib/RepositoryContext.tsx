@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 
@@ -57,33 +58,35 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Save to localStorage whenever repositories change
-  const setRepositories = (repos: Repository[]) => {
+  const setRepositories = useCallback((repos: Repository[]) => {
     setRepositoriesState(repos);
     localStorage.setItem("repositories", JSON.stringify(repos));
-  };
+  }, []);
 
   // Save selected repo to localStorage
-  const setSelectedRepoWithStorage = (repo: Repository | null) => {
+  const setSelectedRepoWithStorage = useCallback((repo: Repository | null) => {
     setSelectedRepo(repo);
     if (repo) {
       localStorage.setItem("selectedRepo", JSON.stringify(repo));
     } else {
       localStorage.removeItem("selectedRepo");
     }
-  };
+  }, []);
 
   // Fetch repositories from backend
-  const fetchRepositories = async () => {
+  const fetchRepositories = useCallback(async () => {
     try {
       const userId = localStorage.getItem("user_id");
       if (!userId) return;
       const apiUrl =
-        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+      
+      let mapped: Repository[] = [];
       const res = await fetch(`${apiUrl}/api/users/${userId}/repositories`);
       if (res.ok) {
         const data = await res.json();
         // Map DB repos to context shape
-        const mapped = data.map((r: any) => ({
+        mapped = data.map((r: any) => ({
           id: r.id,
           name: r.name,
           url: r.html_url || "",
@@ -92,13 +95,27 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
           branch: "main",
           language: "Unknown",
         }));
-        setRepositories(mapped);
       }
+
+      // Merge manually imported global JSON repos
+      try {
+        const jsonRes = await fetch(`${apiUrl}/api/repos`);
+        if (jsonRes.ok) {
+          const jsonRepos = await jsonRes.json();
+          jsonRepos.forEach((jr: any) => {
+            if (!mapped.find(mr => mr.name === jr.name)) {
+              mapped.push(jr);
+            }
+          });
+        }
+      } catch(e) {}
+
+      setRepositories(mapped);
     } catch (e) {
       console.error("Failed to fetch repos:", e);
       // Don't throw - just use empty state
     }
-  };
+  }, [setRepositories]);
 
   return (
     <RepositoryContext.Provider
@@ -109,6 +126,7 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
         setSelectedRepo: setSelectedRepoWithStorage,
         fetchRepositories,
       }}
+
     >
       {children}
     </RepositoryContext.Provider>

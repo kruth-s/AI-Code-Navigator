@@ -70,6 +70,7 @@ export default function DashboardLayout({
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        localStorage.setItem("user_cache", JSON.stringify(userData));
       } else {
         localStorage.clear();
         router.push("/login");

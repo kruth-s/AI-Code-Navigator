@@ -90,10 +90,36 @@ export default function RepositoriesPage() {
     try {
       const url = `${BACKEND_URL}/api/users/${userId}/repositories`;
       const res = await fetch(url);
+      let data = [];
       if (res.ok) {
-        const data = await res.json();
-        setConnectedRepos(data);
+        data = await res.json();
       }
+
+      // Merge globally ingested repos (like Fider)
+      try {
+        const jsonRes = await fetch(`${BACKEND_URL}/api/repos`);
+        if (jsonRes.ok) {
+          const jsonRepos = await jsonRes.json();
+          jsonRepos.forEach((jr: any) => {
+            if (!data.find((r: any) => r.name === jr.name)) {
+              data.push({
+                id: jr.id,
+                name: jr.name,
+                github_id: null,
+                description: "Manually imported",
+                html_url: jr.url,
+                private: false,
+                is_indexed: jr.status === "Indexed" || jr.status === "Indexing",
+                indexed_at: jr.lastSynced,
+                created_at: jr.lastSynced,
+                updated_at: jr.lastSynced,
+              });
+            }
+          });
+        }
+      } catch(e) {}
+
+      setConnectedRepos(data);
     } catch (e) {
       console.error("Error fetching connected repos:", e);
       setConnectedRepos([]);
