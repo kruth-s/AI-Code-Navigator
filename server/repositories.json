@@ -31,5 +31,16 @@
         "language": "Python",
         "progress": 100,
         "status_message": "Repository 'TextSummarizer' ingested successfully!"
+    },
+    "ai-powered-image-tagging-using-generative-vision-language-models": {
+        "id": "ai-powered-image-tagging-using-generative-vision-language-models",
+        "name": "AI-Powered-Image-Tagging-using-Generative-Vision-Language-Models",
+        "url": "https://github.com/kruth-s/AI-Powered-Image-Tagging-using-Generative-Vision-Language-Models",
+        "status": "Indexed",
+        "lastSynced": "2026-04-15 23:59:10",
+        "branch": "main",
+        "language": "Python",
+        "progress": 100,
+        "status_message": "Repository 'AI-Powered-Image-Tagging-using-Generative-Vision-Language-Models' ingested successfully!"
     }
 }

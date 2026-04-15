@@ -14,6 +14,9 @@ import {
   Github,
   Loader2,
   ScanSearch,
+  Bot,
+  Presentation,
+  PenTool
 } from "lucide-react";
 import Link from "next/link";
 import { RepositoryProvider } from "@/lib/RepositoryContext";
@@ -126,6 +129,13 @@ export default function DashboardLayout({
             <NavItem href="/dashboard/review" icon={<ScanSearch className="w-5 h-5" />} label="Code Review" active={pathname === "/dashboard/review"} />
             <NavItem href="/dashboard/issues" icon={<CircleDot className="w-5 h-5" />} label="Issues" active={pathname === "/dashboard/issues"} />
             <NavItem href="/dashboard/settings" icon={<Settings className="w-5 h-5" />} label="Settings" active={pathname === "/dashboard/settings"} />
+            
+            <div className="pt-4 pb-2">
+              <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-widest">Fun</p>
+            </div>
+            <NavItem href="/dashboard/personality" icon={<Bot className="w-5 h-5 text-indigo-400" />} label="AI Personality" active={pathname === "/dashboard/personality"} />
+            <NavItem href="/dashboard/pitch" icon={<Presentation className="w-5 h-5 text-fuchsia-400" />} label="Pitch Generator" active={pathname === "/dashboard/pitch"} />
+            <NavItem href="/dashboard/architecture" icon={<PenTool className="w-5 h-5 text-cyan-400" />} label="Architecture Canvas" active={pathname === "/dashboard/architecture"} />
           </nav>
           
           {/* Bottom: Sign Out */}
@@ -164,6 +174,7 @@ export default function DashboardLayout({
                  {pathname === "/dashboard/review" && "Code Review"}
                  {pathname === "/dashboard/issues" && "Issues"}
                  {pathname === "/dashboard/settings" && "Settings"}
+                 {pathname === "/dashboard/personality" && "AI Personality"}
                </span>
             </div>
 
