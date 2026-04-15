@@ -12,7 +12,8 @@ class ArchitectureRequest(BaseModel):
     repo_name: str
 
 class ArchitectureResponse(BaseModel):
-    mermaid_diagram: str
+    nodes: List[dict]
+    edges: List[dict]
     tech_stack: List[str]
     architecture_summary: str
     issues: List[str]
@@ -63,18 +64,24 @@ Based ONLY on the repository name '{repo_name}', creatively imagine an advanced 
 
 Return ONLY a valid JSON object matching this schema. NO markdown backticks.
 {{
-  "mermaid_diagram": "graph TD\\n  A[Frontend] --> B[API Gateway]\\n...",
-  "tech_stack": ["React", "Node.js", "Redis"],
+  "nodes": [
+    {{"id": "frontend", "label": "Frontend (React)"}},
+    {{"id": "api", "label": "API Gateway"}},
+    {{"id": "db", "label": "Database (PostgreSQL)"}}
+  ],
+  "edges": [
+    {{"id": "e1", "source": "frontend", "target": "api", "label": "REST"}},
+    {{"id": "e2", "source": "api", "target": "db", "label": "SQL"}}
+  ],
+  "tech_stack": ["React", "Node.js", "PostgreSQL"],
   "architecture_summary": "Simulated architecture describing layers...",
   "issues": ["Simulated bottleneck point"]
 }}
-
-For the `mermaid_diagram`: Write VALID Mermaid JS syntax. Use graph TD (top-down) or LR (left-right). Make it look clean, like a system design sketch.
 """
     else:
         prompt = f"""
 You are an expert Solutions Architect.
-Analyze this repository's structure and dependencies to map out its System Architecture. Create a 'Napkin-style' System Diagram.
+Analyze this repository's structure and dependencies to map out its System Architecture. Create a component graph mapping.
 
 Repository Name: {repo_name}
 Folders detected:
@@ -86,15 +93,21 @@ Dependencies found (package.json):
 Dependencies found (requirements.txt):
 {requirements_txt}
 
-Return ONLY a valid JSON object matching this schema. NO markdown backticks wrapping the JSON block.
+Return ONLY a valid JSON object matching this schema mapped for React Flow graph rendering. NO markdown backticks.
 {{
-  "mermaid_diagram": "graph TD\\n  A[Frontend] --> B[API]...",
+  "nodes": [
+    {{"id": "frontend", "label": "Frontend (Next.js)"}},
+    {{"id": "backend", "label": "Backend (FastAPI)"}},
+    {{"id": "db", "label": "Database (Pinecone)"}}
+  ],
+  "edges": [
+    {{"id": "e1-2", "source": "frontend", "target": "backend", "label": "API Call"}},
+    {{"id": "e2-3", "source": "backend", "target": "db", "label": "Vector Search"}}
+  ],
   "tech_stack": ["React", "PostgreSQL", "Kafka"],
-  "architecture_summary": "Short description of the system architecture pattern detected (e.g., Monolith, Layered, Microservices).",
-  "issues": ["Any detected single points of failure, tight coupling, or lack of obvious caching layer."]
+  "architecture_summary": "Short description of the system architecture pattern detected.",
+  "issues": ["Any detected single points of failure, tight coupling."]
 }}
-
-For the `mermaid_diagram`: Write VALID Mermaid JS code. Make it highly professional and complete covering Frontend, Backend, Database, and Infra layers based on your findings. Do NOT use markdown code brackets inside the json value, just the raw mermaid string.
 """
 
     try:
@@ -111,16 +124,17 @@ For the `mermaid_diagram`: Write VALID Mermaid JS code. Make it highly professio
         
         data = json.loads(text)
         return ArchitectureResponse(
-            mermaid_diagram=data.get("mermaid_diagram", "graph TD\n  Unknown --> System"),
+            nodes=data.get("nodes", [{"id": "1", "label": "Unknown"}]),
+            edges=data.get("edges", []),
             tech_stack=data.get("tech_stack", ["Unknown"]),
             architecture_summary=data.get("architecture_summary", "Could not fully parse structure."),
             issues=data.get("issues", ["Manual review required."])
         )
     except Exception as e:
         print("Architecture Diagram Error:", e)
-        # Return fallback json instead of 500 error to ensure UI renders
         return ArchitectureResponse(
-            mermaid_diagram='graph LR\n  A[Error Occurred] --> B[LLM Failed to return structured JSON]\n  style A fill:#f9f,stroke:#333,stroke-width:2px; ',
+            nodes=[{"id": "error", "label": "Error Occurred"}],
+            edges=[],
             tech_stack=["Error"],
             architecture_summary="The analysis engine failed to parse the architectural graph.",
             issues=[str(e)]

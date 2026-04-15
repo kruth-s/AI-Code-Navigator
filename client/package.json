@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@auth/core": "^0.41.2",
+    "dagre": "^0.8.5",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "framer-motion": "^12.27.5",
@@ -20,6 +21,7 @@
     "pg": "^8.13.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "reactflow": "^11.11.4",
     "streamdown": "^2.4.0"
   },
   "devDependencies": {

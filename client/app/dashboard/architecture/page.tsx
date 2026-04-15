@@ -1,67 +1,51 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PenTool, Layers, AlertCircle, Sparkles, FolderGit2, Loader2, Download } from "lucide-react";
 import { useRepository } from "@/lib/RepositoryContext";
-import mermaid from "mermaid";
+import ReactFlow, { Background, useNodesState, useEdgesState, BackgroundVariant } from 'reactflow';
+import 'reactflow/dist/style.css';
+import dagre from 'dagre';
 
 interface ArchData {
-  mermaid_diagram: string;
+  nodes: { id: string; label: string }[];
+  edges: { id: string; source: string; target: string; label?: string }[];
   tech_stack: string[];
   architecture_summary: string;
   issues: string[];
 }
 
-const Mermaid = ({ chart }: { chart: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+const getLayoutedElements = (nodes: any[], edges: any[], direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  useEffect(() => {
-    // Attempt realistic / napkin-inspired styling using properties
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'dark',
-      fontFamily: '"Comic Sans MS", "Marker Felt", "Inter", sans-serif',
-      flowchart: {
-        curve: 'basis', // smoother, hand-drawn look
-        nodeSpacing: 50,
-        rankSpacing: 50,
+  dagreGraph.setGraph({ rankdir: direction });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: 250, height: 80 });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const newNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      targetPosition: 'top',
+      sourcePosition: 'bottom',
+      position: {
+        x: nodeWithPosition.x - 125,
+        y: nodeWithPosition.y - 40,
       },
-      themeVariables: {
-        primaryColor: 'rgba(139, 92, 246, 0.15)', // violet tint
-        primaryBorderColor: 'rgba(139, 92, 246, 0.8)',
-        lineColor: 'rgba(255, 255, 255, 0.4)',
-        textColor: '#f3f4f6',
-        mainBkg: 'rgba(0,0,0,0.5)',
-        nodeBorder: 'rgba(255,255,255,0.7)',
-        clusterBkg: 'rgba(255,255,255,0.02)',
-        clusterBorder: 'rgba(255,255,255,0.2)'
-      }
-    });
-
-    const renderChart = async () => {
-      if (containerRef.current) {
-        try {
-          containerRef.current.innerHTML = ""; // Clear existing
-          
-          // Force strip any markdown code blocks the LLM might have returned
-          const cleanedChart = chart.replace(/```mermaid/gi, "").replace(/```/g, "").trim();
-          
-          // Generate a highly unique ID to prevent React StrictMode double rendering collisions
-          const id = `mermaid-chart-${Math.random().toString(36).substring(2, 9)}`;
-          const { svg } = await mermaid.render(id, cleanedChart);
-          containerRef.current.innerHTML = svg;
-        } catch (e) {
-          console.error("Mermaid parsing error:", e);
-          containerRef.current.innerHTML = "<p class='text-red-400 text-sm'>Error parsing diagram graph. The AI generated invalid Mermaid syntax.</p>";
-        }
-      }
     };
-    
-    renderChart();
-  }, [chart]);
+  });
 
-  return <div ref={containerRef} id="mermaid-container" className="w-full flex justify-center py-6 overflow-auto" />;
+  return { nodes: newNodes, edges };
 };
 
 export default function ArchitecturePage() {
@@ -69,6 +53,9 @@ export default function ArchitecturePage() {
   const [selectedRepo, setSelectedRepo] = useState("");
   const [loading, setLoading] = useState(false);
   const [archData, setArchData] = useState<ArchData | null>(null);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const generateDiagram = async () => {
     if (!selectedRepo) return;
@@ -86,6 +73,39 @@ export default function ArchitecturePage() {
       if (res.ok) {
         const data = await res.json();
         setArchData(data);
+        
+        // Map data to ReactFlow
+        const rfNodes = data.nodes.map((n: any) => ({
+          id: n.id,
+          position: { x: 0, y: 0 },
+          data: { label: n.label },
+          type: 'default',
+          style: {
+            background: 'rgba(17, 17, 22, 0.95)',
+            color: '#e5e7eb',
+            border: '2px solid rgba(139, 92, 246, 0.6)',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '12px',
+            boxShadow: '0 4px 20px rgba(139, 92, 246, 0.2)'
+          }
+        }));
+
+        const rfEdges = data.edges.map((e: any) => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          label: e.label,
+          animated: true,
+          style: { stroke: 'rgba(139, 92, 246, 0.8)', strokeWidth: 2 }
+        }));
+
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rfNodes, rfEdges);
+        
+        setNodes(layoutedNodes);
+        setEdges(layoutedEdges);
+
       } else {
         alert("Failed to evaluate completely.");
       }
@@ -95,38 +115,6 @@ export default function ArchitecturePage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const downloadPNG = () => {
-      // Find the SVG generated by mermaid inside our container
-      const svgEl = document.querySelector("#mermaid-container svg");
-      if (!svgEl) return;
-      
-      const svgData = new XMLSerializer().serializeToString(svgEl);
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const img = new Image();
-      
-      img.onload = () => {
-          // Increase resolution for clarity
-          canvas.width = img.width * 2;
-          canvas.height = img.height * 2;
-          
-          if(ctx) {
-              ctx.scale(2, 2);
-              // Draw dark background directly into PNG for visibility
-              ctx.fillStyle = "#111116"; 
-              ctx.fillRect(0, 0, img.width, img.height);
-              ctx.drawImage(img, 0, 0);
-          }
-          
-          const a = document.createElement("a");
-          a.download = `${selectedRepo}-Architecture.png`;
-          a.href = canvas.toDataURL("image/png");
-          a.click();
-      };
-      
-      img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   return (
@@ -140,7 +128,7 @@ export default function ArchitecturePage() {
           AI Architecture Canvas
         </h1>
         <p className="text-lg mx-auto max-w-xl" style={{ color: "var(--text-secondary)" }}>
-          Automatically map your entire codebase into a clean, 'Napkin-style' System Design diagram. Identify dependencies, bottlenecks, and layers instantly.
+          Automatically map your entire codebase into a clean, interactive System Design diagram using ReactFlow.
         </p>
       </div>
 
@@ -174,7 +162,7 @@ export default function ArchitecturePage() {
             style={{ background: "linear-gradient(135deg, #4f46e5, #4338ca)" }}
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-            {loading ? "Reverse Engineering Layers..." : "Generate Napkin Sketch"}
+            {loading ? "Reverse Engineering Layers..." : "Generate Interactive Flow"}
           </button>
         </div>
       </motion.div>
@@ -187,36 +175,32 @@ export default function ArchitecturePage() {
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8"
           >
-            {/* Visual Diagram Layer */}
+            {/* ReactFlow Interactive Graph Layer */}
             <div 
-                className="lg:col-span-2 p-8 rounded-3xl border relative overflow-hidden flex flex-col"
+                className="lg:col-span-2 rounded-3xl border relative overflow-hidden flex flex-col h-[600px]"
                 style={{ 
-                    backgroundColor: "#111116", // Specific dark slate for whiteboard effect 
+                    backgroundColor: "#0d0d12",
                     borderColor: "rgba(255,255,255,0.05)",
                     boxShadow: "inset 0 0 100px rgba(79, 70, 229, 0.05)"
                 }}
             >
-                {/* Header Action */}
-                <div className="flex justify-between items-center mb-6 pl-2">
-                    <div className="flex items-center gap-2">
-                        <Layers className="w-5 h-5 text-indigo-400" />
-                        <h2 className="font-bold tracking-widest uppercase text-sm text-gray-300">System Design Canvas</h2>
-                    </div>
-                    <button 
-                         onClick={downloadPNG}
-                         className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-gray-300 transition flex items-center gap-2 border border-white/10"
-                    >
-                         <Download className="w-3 h-3"/> Download PNG
-                    </button>
+                <div className="absolute top-6 left-6 z-10 flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-md">
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                    <h2 className="font-bold tracking-widest uppercase text-xs text-gray-300">Architecture Flow</h2>
                 </div>
                 
-                {/* SVG Renderer Area */}
-                <div className="flex-1 border border-dashed border-white/10 rounded-2xl bg-[#0a0a0d] flex items-center justify-center p-4 relative cursor-crosshair">
-                     {/* Subtly grainy dot pattern simulated via bg */}
-                     <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                     <div className="relative z-10 w-full">
-                        <Mermaid chart={archData.mermaid_diagram} />
-                     </div>
+                <div className="flex-1 w-full h-full">
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        fitView
+                        className="touch-none"
+                        proOptions={{ hideAttribution: true }}
+                    >
+                        <Background color="rgba(255,255,255,0.1)" variant={BackgroundVariant.Dots} />
+                    </ReactFlow>
                 </div>
             </div>
 
