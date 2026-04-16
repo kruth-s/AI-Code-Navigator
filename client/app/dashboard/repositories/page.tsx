@@ -107,7 +107,13 @@ export default function RepositoriesPage() {
         if (jsonRes.ok) {
           const jsonRepos = await jsonRes.json();
           jsonRepos.forEach((jr: any) => {
-            if (!data.find((r: any) => r.name === jr.name)) {
+            const existing = data.find((r: any) => 
+              r.name === jr.name || 
+              r.html_url === jr.url || 
+              (r.html_url && jr.url && r.html_url.replace('.git', '') === jr.url.replace('.git', ''))
+            );
+            
+            if (!existing) {
               data.push({
                 id: jr.id,
                 name: jr.name,
@@ -115,11 +121,16 @@ export default function RepositoriesPage() {
                 description: "Manually imported",
                 html_url: jr.url,
                 private: false,
-                is_indexed: jr.status === "Indexed" || jr.status === "Indexing",
+                is_indexed: jr.status === "Indexed",
                 indexed_at: jr.lastSynced,
                 created_at: jr.lastSynced,
                 updated_at: jr.lastSynced,
               });
+            } else {
+              // Update status from JSON if it's more accurate
+              if (jr.status === "Indexed") {
+                existing.is_indexed = true;
+              }
             }
           });
         }

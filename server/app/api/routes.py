@@ -10,6 +10,8 @@ from ..services.ingestion import IngestionService
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from pinecone import Pinecone
 from ..core.config import settings
+from ..core.database import SessionLocal
+from ..models.repository import Repository as RepositoryModel
 
 router = APIRouter()
 
@@ -250,6 +252,24 @@ async def ingest_repo_background(repo_id: str, repo_url: str):
         repositories_db[repo_id]["progress"] = 100
         repositories_db[repo_id]["lastSynced"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         save_repos()
+        
+        # ALSO update the SQL database if the repo exists there
+        db = SessionLocal()
+        try:
+            sql_repo = db.query(RepositoryModel).filter(
+                (RepositoryModel.html_url == repo_url) | 
+                (RepositoryModel.html_url == repo_url + ".git")
+            ).first()
+            
+            if sql_repo:
+                sql_repo.is_indexed = True
+                sql_repo.indexed_at = datetime.utcnow()
+                db.commit()
+                print(f"Updated SQL status for {repo_url} to Indexed")
+        except Exception as sql_e:
+            print(f"Error updating SQL status: {sql_e}")
+        finally:
+            db.close()
         
     except Exception as e:
         print(f"Error ingesting repository: {e}")

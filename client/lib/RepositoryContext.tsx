@@ -103,8 +103,21 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
         if (jsonRes.ok) {
           const jsonRepos = await jsonRes.json();
           jsonRepos.forEach((jr: any) => {
-            if (!mapped.find(mr => mr.name === jr.name)) {
+            const existing = mapped.find(mr => 
+              mr.name === jr.name || 
+              mr.url === jr.url ||
+              (mr.url && jr.url && mr.url.replace('.git', '') === jr.url.replace('.git', ''))
+            );
+            
+            if (!existing) {
               mapped.push(jr);
+            } else {
+              // Update status from JSON if it's more accurate
+              if (jr.status === "Indexed") {
+                existing.status = "Indexed";
+              } else if (jr.status === "Indexing") {
+                existing.status = "Indexing";
+              }
             }
           });
         }
