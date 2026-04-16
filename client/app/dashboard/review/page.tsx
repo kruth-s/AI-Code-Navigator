@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, ScanSearch, CheckCircle2, AlertTriangle, XCircle, Code2, Sparkles, Loader2, FolderGit2, FileCode2 } from "lucide-react";
+import { 
+  CheckCircle2, AlertCircle, PlayCircle, Loader2, FileCode2, Copy, Trash2, FolderGit2,
+  Sparkles, Check, Info, ShieldAlert, ScanSearch, Code2, AlertTriangle, XCircle
+} from "lucide-react";
+import RepoSelector from "@/components/RepoSelector";
 import { useRepository } from "@/lib/RepositoryContext";
 
 export default function CodeReviewPage() {
@@ -136,24 +140,16 @@ export default function CodeReviewPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`w-full rounded-xl overflow-hidden border ${activeTab === "codebase" ? "p-4 flex items-center gap-4" : ""}`}
+            className={`w-full rounded-xl border ${activeTab === "codebase" ? "" : "overflow-hidden"}`}
             style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--card-bg)" }}
           >
             {activeTab === "codebase" ? (
-              <>
-                <FolderGit2 className="w-6 h-6 text-violet-400" />
-                <select
-                  value={selectedRepo}
-                  onChange={(e) => setSelectedRepo(e.target.value)}
-                  className="w-full bg-transparent outline-none font-medium"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  <option value="" disabled style={{ color: "black" }}>Select an indexed repository...</option>
-                  {repositories.filter(r => r.status === "Indexed").map(r => (
-                    <option key={r.id} value={r.name} style={{ color: "black" }}>{r.name}</option>
-                  ))}
-                </select>
-              </>
+              <RepoSelector 
+                repositories={repositories.filter((r) => r.status === "Indexed")} 
+                selectedRepo={selectedRepo} 
+                setSelectedRepo={setSelectedRepo} 
+                accentClass="text-violet-400" 
+              />
             ) : (
               <textarea
                 className="w-full h-80 p-4 font-mono text-sm bg-transparent outline-none resize-none"

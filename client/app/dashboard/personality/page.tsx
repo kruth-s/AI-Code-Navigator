@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Swords, Shield, Share2, Sparkles, FolderGit2, Loader2, Quote } from "lucide-react";
 import { useRepository } from "@/lib/RepositoryContext";
+import RepoSelector from "@/components/RepoSelector";
 
 export default function PersonalityPage() {
   const { repositories } = useRepository();
@@ -74,20 +75,12 @@ export default function PersonalityPage() {
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5">
-            <FolderGit2 className="w-5 h-5 text-indigo-400" />
-            <select
-              value={selectedRepo}
-              onChange={(e) => setSelectedRepo(e.target.value)}
-              className="w-full bg-transparent outline-none font-medium appearance-none"
-              style={{ color: "var(--text-primary)" }}
-            >
-              <option value="" disabled style={{ color: "black" }}>Select your repository...</option>
-              {repositories.map(r => (
-                <option key={r.id} value={r.name} style={{ color: "black" }}>{r.name}</option>
-              ))}
-            </select>
-          </div>
+          <RepoSelector 
+            repositories={repositories} 
+            selectedRepo={selectedRepo} 
+            setSelectedRepo={setSelectedRepo} 
+            accentClass="text-violet-400" 
+          />
           
           <button
             onClick={generatePersonality}

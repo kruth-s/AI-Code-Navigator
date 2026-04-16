@@ -98,6 +98,34 @@ def create_account(
     return db_account
 
 
+def update_account_token(
+    db: Session,
+    user_id: UUID,
+    provider: str,
+    access_token: str,
+    refresh_token: str | None = None,
+    expires_at: int | None = None
+) -> Account | None:
+    """Update an existing OAuth account's token"""
+    account = db.query(Account).filter(
+        Account.user_id == user_id,
+        Account.provider == provider
+    ).first()
+    
+    if not account:
+        return None
+        
+    account.access_token = access_token
+    if refresh_token:
+        account.refresh_token = refresh_token
+    if expires_at:
+        account.expires_at = expires_at
+        
+    db.commit()
+    db.refresh(account)
+    return account
+
+
 def create_session(
     db: Session, 
     user_id: UUID, 

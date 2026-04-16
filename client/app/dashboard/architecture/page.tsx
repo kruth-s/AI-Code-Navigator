@@ -7,6 +7,7 @@ import { useRepository } from "@/lib/RepositoryContext";
 import ReactFlow, { Background, useNodesState, useEdgesState, BackgroundVariant } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
+import RepoSelector from "@/components/RepoSelector";
 
 interface ArchData {
   nodes: { id: string; label: string }[];
@@ -117,6 +118,32 @@ export default function ArchitecturePage() {
     }
   };
 
+  const onInit = useCallback((instance: any) => {
+    // Optionally store instance
+  }, []);
+
+  const downloadImage = async () => {
+    const element = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (!element) return;
+
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#0d0d12',
+        quality: 1,
+        pixelRatio: 2,
+      });
+
+      const link = document.createElement('a');
+      link.download = `architecture-${selectedRepo || 'export'}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Error exporting image:', error);
+      alert('Failed to export graph as image.');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
       {/* Header */}
@@ -140,20 +167,12 @@ export default function ArchitecturePage() {
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5">
-            <FolderGit2 className="w-5 h-5 text-indigo-400" />
-            <select
-              value={selectedRepo}
-              onChange={(e) => setSelectedRepo(e.target.value)}
-              className="w-full bg-transparent outline-none font-medium appearance-none"
-              style={{ color: "var(--text-primary)" }}
-            >
-              <option value="" disabled style={{ color: "black" }}>Select your repository...</option>
-              {repositories.map(r => (
-                <option key={r.id} value={r.name} style={{ color: "black" }}>{r.name}</option>
-              ))}
-            </select>
-          </div>
+          <RepoSelector 
+            repositories={repositories} 
+            selectedRepo={selectedRepo} 
+            setSelectedRepo={setSelectedRepo} 
+            accentClass="text-indigo-400" 
+          />
           
           <button
             onClick={generateDiagram}
@@ -184,9 +203,17 @@ export default function ArchitecturePage() {
                     boxShadow: "inset 0 0 100px rgba(79, 70, 229, 0.05)"
                 }}
             >
-                <div className="absolute top-6 left-6 z-10 flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-md">
-                    <Layers className="w-4 h-4 text-indigo-400" />
-                    <h2 className="font-bold tracking-widest uppercase text-xs text-gray-300">Architecture Flow</h2>
+                <div className="absolute top-6 left-6 z-10 flex items-center justify-between w-full pr-12">
+                    <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-md">
+                        <Layers className="w-4 h-4 text-indigo-400" />
+                        <h2 className="font-bold tracking-widest uppercase text-xs text-gray-300">Architecture Flow</h2>
+                    </div>
+                    <button 
+                        onClick={downloadImage}
+                        className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/20 text-indigo-400 transition-all flex items-center gap-2 text-xs font-bold"
+                    >
+                        <Download className="w-4 h-4" /> Export Image
+                    </button>
                 </div>
                 
                 <div className="flex-1 w-full h-full">

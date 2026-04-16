@@ -16,7 +16,8 @@ import {
   ScanSearch,
   Bot,
   Presentation,
-  PenTool
+  PenTool,
+  Headphones
 } from "lucide-react";
 import Link from "next/link";
 import { RepositoryProvider } from "@/lib/RepositoryContext";
@@ -131,30 +132,14 @@ export default function DashboardLayout({
             <NavItem href="/dashboard/settings" icon={<Settings className="w-5 h-5" />} label="Settings" active={pathname === "/dashboard/settings"} />
             
             <div className="pt-4 pb-2">
-              <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-widest">Fun</p>
+              <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-widest">Intelligence Suite</p>
             </div>
             <NavItem href="/dashboard/personality" icon={<Bot className="w-5 h-5 text-indigo-400" />} label="AI Personality" active={pathname === "/dashboard/personality"} />
             <NavItem href="/dashboard/pitch" icon={<Presentation className="w-5 h-5 text-fuchsia-400" />} label="Pitch Generator" active={pathname === "/dashboard/pitch"} />
             <NavItem href="/dashboard/architecture" icon={<PenTool className="w-5 h-5 text-cyan-400" />} label="Architecture Canvas" active={pathname === "/dashboard/architecture"} />
+            <NavItem href="/dashboard/brief" icon={<Headphones className="w-5 h-5 text-emerald-400" />} label="60s Brief" active={pathname === "/dashboard/brief"} />
           </nav>
           
-          {/* Bottom: Sign Out */}
-          <div className="p-4" style={{ borderTop: '1px solid var(--border-primary)' }}>
-             <button
-                onClick={handleLogout}
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
-                style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-             >
-                {user?.image ? (
-                  <img src={user.image} alt="Avatar" className="h-7 w-7 rounded-full border border-white/10" />
-                ) : (
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
-                    <span className="text-xs font-bold">{user?.name?.charAt(0) || "U"}</span>
-                  </div>
-                )}
-                Sign Out
-             </button>
-          </div>
         </aside>
 
         {/* Main Content Area */}
@@ -250,7 +235,7 @@ export default function DashboardLayout({
             </div>
           </header>
           
-          <main className="flex-1 overflow-y-auto p-8">{children}</main>
+          <main className="flex-1 overflow-y-auto p-8 scrollbar-hide">{children}</main>
         </div>
       </div>
     </RepositoryProvider>

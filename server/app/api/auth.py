@@ -119,35 +119,22 @@ async def github_callback(
     avatar_url = github_user.get("avatar_url")
     login = github_user.get("login")
     
-    # If email is not public, fetch it from GitHub API
+    # If email is not public, fallback to a standard GitHub noreply email to prevent 403 OAuth blocking
     if not email:
-        async with httpx.AsyncClient() as client:
-            emails_response = await client.get(
-                "https://api.github.com/user/emails",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/json",
-                    "User-Agent": "AI-Code-Navigator",
-                }
-            )
-            emails = emails_response.json()
-            
-            # Ensure it's a list (if GitHub returns an error dict, iterating over it causes errors)
-            if isinstance(emails, list):
-                # Get primary email
-                for email_obj in emails:
-                    if isinstance(email_obj, dict) and email_obj.get("primary"):
-                        email = email_obj.get("email")
-                        break
-            else:
-                print(f"⚠️ Warning: Failed to fetch emails from GitHub API. Response: {emails}")
+        email = f"{login}@users.noreply.github.com"
     
     # Check if user already exists
     existing_user = user_crud.get_user_by_github(db, github_id)
     
     if existing_user:
-        # Update existing user
+        # Update existing user's account token
         user = existing_user
+        user_crud.update_account_token(
+            db,
+            user_id=user.id,
+            provider="github",
+            access_token=access_token,
+        )
     else:
         # Create new user
         user_data = UserCreate(
@@ -170,7 +157,10 @@ async def github_callback(
     
     # Create session (simple token-based)
     session_token = secrets.token_urlsafe(48)
-    expires_at = datetime.utcnow() + timedelta(days=7)  # 7 days
+    
+    # Use timezone-aware UTC datetime to fix deprecation warning
+    from datetime import timezone
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)  # 7 days
     
     user_crud.create_session(
         db,

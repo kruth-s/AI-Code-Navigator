@@ -74,6 +74,12 @@ export default function RepositoriesPage() {
         if (res.ok) {
           const data = await res.json();
           setGithubRepos(data.repositories || []);
+        } else if (res.status === 401) {
+          // Token might be expired or missing
+          console.error("Authentication expired or GitHub not connected");
+          setGithubRepos([]);
+        } else {
+          console.error("Failed to fetch GitHub repos:", await res.text());
         }
       } catch (e: any) {
         console.error("Network error fetching repos:", e);
