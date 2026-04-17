@@ -15,6 +15,27 @@ import re
 from datetime import datetime
 
 from ..mcp_client import mcp_client
+from ..core.database import SessionLocal
+from ..models.repository import Repository as RepositoryModel
+
+def resolve_repo_id(repo_id: str) -> str:
+    """Helper to resolve UUID to slug if needed."""
+    repos_db = mcp_client.repos_db
+    if repo_id in repos_db:
+        return repo_id
+        
+    if len(repo_id) >= 32:
+        db = SessionLocal()
+        try:
+            sql_repo = db.query(RepositoryModel).filter(RepositoryModel.id == repo_id).first()
+            if sql_repo and sql_repo.html_url:
+                url = sql_repo.html_url
+                for rid, data in repos_db.items():
+                    if data.get("url") == url or data.get("url") == url + ".git":
+                        return rid
+        finally:
+            db.close()
+    return repo_id
 
 router = APIRouter()
 
@@ -122,6 +143,7 @@ async def delete_repository(repo_id: str):
     Delete a repository.
     Delegates to the `delete_repository` MCP tool.
     """
+    repo_id = resolve_repo_id(repo_id)
     result = mcp_client.remove_repo(repo_id=repo_id)
 
     if "error" in result:
@@ -153,6 +175,7 @@ async def get_repo_issues(repo_id: str):
     Fetch open issues from GitHub for a repository.
     Delegates to the `get_github_issues` MCP tool.
     """
+    repo_id = resolve_repo_id(repo_id)
     repos_db = mcp_client.repos_db
 
     if repo_id not in repos_db:

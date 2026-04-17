@@ -5,6 +5,7 @@ import os
 import re
 from app.services.llm import get_llm
 from langchain_core.messages import SystemMessage
+from ..core.repo_utils import resolve_repo_id
 
 router = APIRouter(prefix="/api/review", tags=["code-reviewer"])
 
@@ -161,7 +162,7 @@ class RepoReviewResponse(BaseModel):
 
 @router.post("/repo", response_model=RepoReviewResponse)
 async def review_repository(request: RepoReviewRequest):
-    repo_name = request.repo_name
+    repo_name = resolve_repo_id(request.repo_name)
     repos_dir = os.path.join(os.getcwd(), "repos", repo_name)
     
     if not os.path.exists(repos_dir):

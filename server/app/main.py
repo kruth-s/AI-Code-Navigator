@@ -22,14 +22,14 @@ mcp_app = mcp.http_app(path="/")
 async def lifespan(app: FastAPI):
     # Startup — models are imported, metadata is ready
     init_db()
-    print("✅ Database initialized with Neon PostgreSQL")
+    print("Database initialized with Neon PostgreSQL")
     if hasattr(mcp_app, 'lifespan'):
         async with mcp_app.lifespan(app):
             yield
     else:
         yield
     # Shutdown
-    print("👋 Shutting down Akaza Backend")
+    print("Shutting down Akaza Backend")
 
 app = FastAPI(
     title="Akaza Codebase Q&A Backend",
@@ -41,7 +41,7 @@ app = FastAPI(
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],  
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,6 +56,7 @@ from .api import code_reviewer as code_reviewer_routes
 from .api import personality as personality_routes
 from .api import pitch_deck as pitch_deck_routes
 from .api import architecture as architecture_routes
+from .api import repo_brief as repo_brief_routes
 
 app.include_router(routes_simple.router)
 app.include_router(user_routes.router)
@@ -65,6 +66,7 @@ app.include_router(code_reviewer_routes.router)
 app.include_router(personality_routes.router)
 app.include_router(pitch_deck_routes.router)
 app.include_router(architecture_routes.router)
+app.include_router(repo_brief_routes.router)
 
 # Mount the MCP server at /mcp
 # This exposes the MCP Streamable HTTP endpoint at http://localhost:8000/mcp

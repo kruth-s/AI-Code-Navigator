@@ -60,6 +60,49 @@ def _save_repos(db: dict):
 
 repositories_db: Dict[str, Dict[str, Any]] = _load_repos()
 
+
+def _resolve_repo_id(repo_id: str) -> str:
+    """
+    Resolves a repo identifier to the slug used in repositories_db.
+    Handles UUIDs from the SQL database by looking up their URL.
+    """
+    if not repo_id:
+        return repo_id
+
+    # 1. Direct match
+    if repo_id in repositories_db:
+        return repo_id
+
+    # 2. Check for URL match
+    for rid, data in repositories_db.items():
+        if data.get("url") == repo_id or data.get("url") == repo_id + ".git":
+            return rid
+
+    # 3. Resolve via DB if it looks like a UUID
+    if len(repo_id) >= 32:
+        try:
+            from .core.database import SessionLocal
+            from .models.repository import Repository as RepositoryModel
+
+            db = SessionLocal()
+            try:
+                sql_repo = (
+                    db.query(RepositoryModel)
+                    .filter(RepositoryModel.id == repo_id)
+                    .first()
+                )
+                if sql_repo and sql_repo.html_url:
+                    url = sql_repo.html_url
+                    for rid, data in repositories_db.items():
+                        if data.get("url") == url or data.get("url") == url + ".git":
+                            return rid
+            finally:
+                db.close()
+        except Exception:
+            pass
+
+    return repo_id
+
 # ---------------------------------------------------------------------------
 # MCP Resources
 # ---------------------------------------------------------------------------
@@ -74,6 +117,7 @@ def resource_repos_list() -> str:
 @mcp.resource("repos://{repo_id}/status")
 def resource_repo_status(repo_id: str) -> str:
     """Returns the status of a specific repository."""
+    repo_id = _resolve_repo_id(repo_id)
     repo = repositories_db.get(repo_id)
     if not repo:
         return json.dumps({"error": "Repository not found"})
@@ -98,6 +142,8 @@ async def query_codebase(query: str, repo_id: str) -> Dict[str, Any]:
     Returns:
         A dict with 'answer', 'confidence', and 'sources'.
     """
+    repo_id = _resolve_repo_id(repo_id)
+
     if repo_id not in repositories_db:
         return {"error": f"Repository '{repo_id}' not found"}
 
@@ -150,6 +196,7 @@ def search_code_vectors(query: str, repo_id: str, top_k: int = 5) -> List[Dict[s
     Returns:
         A list of matching code chunks with file paths and scores.
     """
+    repo_id = _resolve_repo_id(repo_id)
     try:
         from pinecone import Pinecone
         from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -194,6 +241,7 @@ def search_code_files(pattern: str, repo_id: str) -> List[str]:
     Returns:
         A list of matching lines with file paths and line numbers.
     """
+    repo_id = _resolve_repo_id(repo_id)
     repo_path = os.path.join(os.getcwd(), "repos", repo_id)
     matches = []
 
@@ -421,6 +469,8 @@ def delete_repository(repo_id: str) -> Dict[str, Any]:
     Returns:
         Status dict confirming deletion.
     """
+    repo_id = _resolve_repo_id(repo_id)
+
     if repo_id not in repositories_db:
         return {"error": "Repository not found"}
 
