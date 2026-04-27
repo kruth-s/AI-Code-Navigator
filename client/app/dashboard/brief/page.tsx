@@ -17,9 +17,11 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from "lucide-react";
 import { useRepository } from "@/lib/RepositoryContext";
+import CustomDropdown from "@/components/CustomDropdown";
 
 interface BriefData {
   repo_name: string;
@@ -157,218 +159,240 @@ export default function RepoBriefPage() {
     );
   }
 
+  const words = briefData?.transcript.split(" ") || [];
+  const currentWordIndex = Math.floor((progress / 100) * words.length);
+
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-80px)] flex flex-col justify-center space-y-4 relative overflow-hidden">
-      {/* Compact Header */}
-      <div className="text-center space-y-2 relative z-10 scale-90">
-        <div className="inline-flex items-center justify-center p-2.5 bg-emerald-500/10 rounded-2xl mb-1 border border-emerald-500/20">
-          <Headphones className="w-8 h-8 text-emerald-400" />
-        </div>
-        <h1 className="text-3xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>
-          60-Second Repo Brief
-        </h1>
-        <p className="text-sm mx-auto max-w-xl opacity-80" style={{ color: "var(--text-secondary)" }}>
-          AI-generated audio summary of <span className="text-emerald-400 font-bold">{selectedRepo.name}</span>.
-        </p>
-      </div>
-
+    <div className="w-full h-full flex flex-col relative overflow-hidden">
+      {/* Immersive Background Elements */}
       <motion.div 
-        className="rounded-3xl border relative overflow-hidden bg-black/40 flex-1 max-h-[650px] flex flex-col"
-        style={{ borderColor: "var(--border-primary)" }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        {/* Loading Overlay */}
-        <AnimatePresence>
-          {loading && (
-            <motion.div 
-              className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md bg-black/60 rounded-3xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
-              <h3 className="text-xl font-bold text-white">Generating Brief...</h3>
-              <p className="text-gray-400 text-sm mt-2">Analyzing architecture and core modules</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        animate={isPlaying ? {
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.5, 0.3],
+        } : {}}
+        transition={{ duration: 4, repeat: Infinity }}
+        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none -z-10" 
+      />
+      <motion.div 
+        animate={isPlaying ? {
+          scale: [1, 1.3, 1],
+          opacity: [0.2, 0.4, 0.2],
+        } : {}}
+        transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+        className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-teal-500/10 rounded-full blur-[140px] pointer-events-none -z-10" 
+      />
 
-        {/* Error State */}
-        <AnimatePresence>
-          {error && !loading && (
+      <div className="flex-1 flex flex-col min-h-0 space-y-6">
+        {/* Header Section */}
+        <div className="flex items-end justify-between shrink-0">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold uppercase tracking-[0.2em] text-[10px]">
+              <div className="w-8 h-[1px] bg-emerald-500/40" />
+              Intelligence Suite / 60s Brief
+            </div>
+            <h1 className="text-4xl font-black tracking-tight text-white leading-none">
+              {briefData?.repo_name || selectedRepo.name}
+            </h1>
+          </div>
+          <div className="flex gap-2">
+            {(briefData?.tech_stack || [selectedRepo.language]).map((t, i) => (
+              <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-gray-400">
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content Hub */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0">
+          
+          {/* Left Panel: Audio Control & Visuals */}
+          <motion.div 
+            className="lg:col-span-4 flex flex-col p-10 rounded-[2.5rem] border border-white/5 bg-black/40 backdrop-blur-sm relative overflow-hidden group shadow-2xl"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            {/* Visualizer Circle */}
+            <div className="flex-1 flex flex-col items-center justify-center relative">
+               <div className="relative w-56 h-56 flex items-center justify-center">
+                  {/* Outer Rings */}
+                  <motion.div 
+                    animate={isPlaying ? { rotate: 360 } : {}}
+                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 border-2 border-dashed border-emerald-500/20 rounded-full"
+                  />
+                  <motion.div 
+                    animate={isPlaying ? { rotate: -360 } : {}}
+                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-[-25px] border border-white/5 rounded-full"
+                  />
+                  
+                  {/* Play Button Core */}
+                  <button 
+                    onClick={handlePlayPause}
+                    className="relative z-10 w-28 h-28 rounded-full bg-white text-black flex items-center justify-center shadow-2xl shadow-emerald-500/30 hover:scale-110 active:scale-95 transition-all group/play"
+                  >
+                    <AnimatePresence mode="wait">
+                      {isPlaying ? (
+                        <motion.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <Pause className="w-10 h-10 fill-current" />
+                        </motion.div>
+                      ) : (
+                        <motion.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <Play className="w-10 h-10 fill-current translate-x-1" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </button>
+               </div>
+               
+               <div className="mt-14 text-center space-y-2">
+                  <div className="text-3xl font-black text-white">{progress.toFixed(0)}%</div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Transcript Progress</div>
+               </div>
+            </div>
+
+            {/* Bottom Controls */}
+            <div className="mt-auto space-y-8 pt-8 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <button onClick={handleReset} className="p-4 rounded-2xl hover:bg-white/5 transition-colors text-gray-400 hover:text-white border border-transparent hover:border-white/5">
+                    <RefreshCcw className="w-6 h-6" />
+                  </button>
+                  <div className="flex items-center gap-6">
+                    <SkipBack className="w-8 h-8 text-gray-600 cursor-not-allowed" />
+                    <SkipForward className="w-8 h-8 text-gray-600 cursor-not-allowed" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <Headphones className="w-6 h-6" />
+                  </div>
+                </div>
+
+                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-emerald-600 to-teal-400"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+            </div>
+          </motion.div>
+
+          {/* Right Panel: Settings & Transcript */}
+          <div className="lg:col-span-8 flex flex-col space-y-8 min-h-0">
+            
+            {/* Settings Bar */}
             <motion.div 
-              className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md bg-black/60 rounded-3xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="p-8 rounded-[2rem] border border-white/5 bg-black/20 flex flex-wrap items-center gap-10 shrink-0 shadow-xl"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 bg-red-500/20 rounded-full mb-4">
-                <AlertCircle className="w-12 h-12 text-red-500" />
+              <div className="flex items-center gap-5">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                  <Rocket className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Target Audience</div>
+                  <div className="w-56 pt-1">
+                    <CustomDropdown 
+                      options={["Senior Engineer", "Non-Tech Manager", "Venture Capitalist", "Beginner Dev"]} 
+                      selected={audience} 
+                      setSelected={setAudience} 
+                      accentClass="text-indigo-400"
+                    />
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-white">Oops! Creation Failed</h3>
-              <p className="text-gray-400 text-sm mt-2 mb-6">{error}</p>
+
+              <div className="flex items-center gap-5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Script Tone</div>
+                  <div className="w-56 pt-1">
+                    <CustomDropdown 
+                      options={["Energetic", "Professional", "Sarcastic", "Mysterious"]} 
+                      selected={tone} 
+                      setSelected={setTone} 
+                    />
+                  </div>
+                </div>
+              </div>
+
               <button 
                 onClick={fetchBrief}
-                className="px-6 py-2 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition"
+                disabled={loading}
+                className="ml-auto px-8 py-4 rounded-2xl bg-white text-black font-black text-sm hover:bg-gray-200 transition-all flex items-center gap-3 shadow-2xl shadow-white/10 active:scale-95"
               >
-                Try Again
+                <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Update Script
               </button>
             </motion.div>
-          )}
-        </AnimatePresence>
 
-        <div className="p-8 flex-1 flex flex-col overflow-y-auto custom-scrollbar">
-            {/* Repo Info Header */}
-            <div className="flex flex-col items-center mb-6 pb-6 border-b border-white/5 text-center">
-                <span className="text-xs uppercase tracking-widest text-emerald-500 font-bold mb-2">Live Analysis</span>
-                <h2 className="text-3xl font-black text-white mb-4">{briefData?.repo_name || selectedRepo.name}</h2>
-                <div className="flex flex-wrap justify-center gap-2">
-                    {(briefData?.tech_stack || [selectedRepo.language, "Source Code", "Repository"]).map((t, i) => (
-                        <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-semibold text-gray-300">
-                            {t}
-                        </span>
-                    ))}
+            {/* Transcript Card */}
+            <motion.div 
+              className="flex-1 rounded-[2.5rem] border border-white/5 bg-black/40 backdrop-blur-md overflow-hidden flex flex-col min-h-0 relative group shadow-2xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="p-10 pb-6 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                   <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/10">
+                      <FileText className="w-5 h-5 text-emerald-400" />
+                   </div>
+                   <h3 className="text-xl font-bold text-white tracking-tight">AI Generated Transcript</h3>
                 </div>
-            </div>
-
-            {/* Config Toolbar */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">Audience:</span>
-                    <select 
-                      value={audience}
-                      onChange={(e) => setAudience(e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-lg px-4 py-1.5 text-xs font-medium text-white appearance-none outline-none focus:border-emerald-500/50 transition w-full md:w-40"
-                    >
-                        <option value="Senior Engineer">Senior Engineer</option>
-                        <option value="Non-Tech Manager">Non-Tech Manager</option>
-                        <option value="Venture Capitalist">VC / Investor</option>
-                        <option value="Beginner Developer">Beginner Dev</option>
-                    </select>
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] px-4 py-2 bg-white/5 rounded-full border border-white/5 backdrop-blur-sm">
+                   {briefData?.estimated_word_count || 0} Words / ~60 Seconds
                 </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">Tone:</span>
-                    <select 
-                      value={tone}
-                      onChange={(e) => setTone(e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-lg px-4 py-1.5 text-xs font-medium text-white appearance-none outline-none focus:border-emerald-500/50 transition w-full md:w-40"
-                    >
-                        <option value="Energetic">Energetic</option>
-                        <option value="Professional">Professional</option>
-                        <option value="Sarcastic">Sarcastic</option>
-                        <option value="Mysterious">Mysterious</option>
-                    </select>
-                </div>
-                <button 
-                  onClick={fetchBrief}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-xs font-black rounded-lg transition border border-emerald-500/20"
-                >
-                  <RefreshCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Update
-                </button>
-            </div>
-
-            {/* Audio Player Core */}
-            <div className="flex flex-col items-center max-w-2xl mx-auto w-full space-y-8 py-4">
-                {/* Visualizer (Fake Waves) */}
-                <div className="w-full flex items-end justify-center gap-1.5 h-12">
-                   {[...Array(30)].map((_, i) => (
-                      <motion.div 
-                        key={i} 
-                        className={`w-1.5 rounded-full ${isPlaying ? 'bg-emerald-400' : 'bg-gray-600'}`}
-                        animate={isPlaying ? { 
-                          height: [10, Math.random() * 40 + 10, 10],
-                          opacity: [0.5, 1, 0.5]
-                        } : { height: 10, opacity: 0.3 }}
-                        transition={{ 
-                          repeat: Infinity, 
-                          duration: 0.5 + Math.random(),
-                          ease: "easeInOut"
-                        }}
-                      />
-                   ))}
-                </div>
-
-                {/* Progress Bar */}
-                <div className="w-full space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold text-gray-500 font-mono">
-                        <span className="text-emerald-400">{Math.floor((progress/100) * 60)}s</span>
-                        <span>{briefData?.duration_seconds || 60}s</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden border border-white/5 group cursor-pointer relative"
-                         onClick={(e) => {
-                           const rect = e.currentTarget.getBoundingClientRect();
-                           const x = e.clientX - rect.left;
-                           const clickedProgress = (x / rect.width) * 100;
-                           setProgress(clickedProgress);
-                           // Seek logic would go here if using HTML5 Audio
-                         }}
-                    >
-                        <motion.div 
-                          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.3)]" 
-                          style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                </div>
-
-                {/* Controls */}
-                <div className="flex items-center gap-8">
-                   <button 
-                    onClick={handleReset}
-                    className="text-gray-500 hover:text-white transition"
-                   >
-                       <SkipBack className="w-6 h-6" />
-                   </button>
-                   <button 
-                    onClick={handlePlayPause}
-                    className="p-5 rounded-full bg-white text-black shadow-xl shadow-white/10 hover:scale-105 active:scale-95 transition"
-                   >
-                       {isPlaying ? <Pause className="w-7 h-7 fill-current" /> : <Play className="w-7 h-7 fill-current translate-x-0.5" />}
-                   </button>
-                   <button className="text-gray-500 hover:text-white transition opacity-50 cursor-not-allowed">
-                       <SkipForward className="w-6 h-6" />
-                   </button>
-                </div>
-            </div>
-
-            {/* Transcript Area */}
-            {briefData && (
-              <div className="mt-8 rounded-2xl border border-white/5 bg-[#0a0a0d] overflow-hidden">
-                  <button 
-                    onClick={() => setShowTranscript(!showTranscript)}
-                    className="w-full p-4 flex items-center justify-between text-left text-xs font-bold text-gray-400 hover:bg-white/5 transition"
-                  >
-                      <span className="flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                        AI GENERATED TRANSCRIPT
-                      </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${showTranscript ? 'rotate-180' : ''}`} />
-                  </button>
-                  <AnimatePresence>
-                    {showTranscript && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="px-5 pb-6 text-sm leading-7 font-medium text-gray-300"
-                      >
-                          <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10 italic">
-                             "{briefData.transcript}"
-                          </div>
-                          <div className="flex justify-between mt-4 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                             <span>Estimated Reading Time: 58 seconds</span>
-                             <span>Word Count: {briefData.estimated_word_count}</span>
-                          </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
               </div>
-            )}
+
+              <div className="flex-1 p-10 pt-0 overflow-y-auto custom-scrollbar relative">
+                <AnimatePresence mode="wait">
+                  {briefData ? (
+                    <motion.div
+                      key={briefData.transcript}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-2xl md:text-3xl lg:text-4xl leading-[1.6] font-bold"
+                    >
+                       <div className="flex flex-wrap gap-x-3 gap-y-2">
+                        {words.map((word, idx) => {
+                          const isHighlighted = idx <= currentWordIndex;
+                          const isCurrent = idx === currentWordIndex;
+                          
+                          return (
+                            <motion.span
+                              key={idx}
+                              animate={{
+                                color: isHighlighted ? "#ffffff" : "#4b5563",
+                                scale: isCurrent ? 1.05 : 1,
+                                opacity: isHighlighted ? 1 : 0.3
+                              }}
+                              transition={{ duration: 0.2 }}
+                              className="inline-block transition-all origin-left"
+                            >
+                              {word}
+                            </motion.span>
+                          );
+                        })}
+                       </div>
+                    </motion.div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-6">
+                       <Loader2 className="w-12 h-12 animate-spin text-emerald-500/40" />
+                       <p className="text-lg font-medium tracking-tight">Synthesizing codebase patterns...</p>
+                    </div>
+                  )}
+                </AnimatePresence>
+                
+                {/* Bottom Gradient Fade */}
+                <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+              </div>
+            </motion.div>
+          </div>
         </div>
-      </motion.div>
-      
-      {/* Visual background element */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      </div>
     </div>
   );
 }
