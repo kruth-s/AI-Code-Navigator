@@ -57,6 +57,7 @@ from .api import personality as personality_routes
 from .api import pitch_deck as pitch_deck_routes
 from .api import architecture as architecture_routes
 from .api import repo_brief as repo_brief_routes
+from .api import ghost_mode as ghost_mode_routes
 
 app.include_router(routes_simple.router)
 app.include_router(user_routes.router)
@@ -67,6 +68,7 @@ app.include_router(personality_routes.router)
 app.include_router(pitch_deck_routes.router)
 app.include_router(architecture_routes.router)
 app.include_router(repo_brief_routes.router)
+app.include_router(ghost_mode_routes.router)
 
 # Mount the MCP server at /mcp
 # This exposes the MCP Streamable HTTP endpoint at http://localhost:8000/mcp

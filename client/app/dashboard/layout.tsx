@@ -17,7 +17,8 @@ import {
   Bot,
   Presentation,
   PenTool,
-  Headphones
+  Headphones,
+  Ghost
 } from "lucide-react";
 import Link from "next/link";
 import { RepositoryProvider } from "@/lib/RepositoryContext";
@@ -138,6 +139,7 @@ export default function DashboardLayout({
             <NavItem href="/dashboard/pitch" icon={<Presentation className="w-5 h-5 text-fuchsia-400" />} label="Pitch Generator" active={pathname === "/dashboard/pitch"} />
             <NavItem href="/dashboard/architecture" icon={<PenTool className="w-5 h-5 text-cyan-400" />} label="Architecture Canvas" active={pathname === "/dashboard/architecture"} />
             <NavItem href="/dashboard/brief" icon={<Headphones className="w-5 h-5 text-emerald-400" />} label="60s Brief" active={pathname === "/dashboard/brief"} />
+            <NavItem href="/dashboard/ghost" icon={<Ghost className="w-5 h-5 text-rose-400" />} label="Ghost Mode" active={pathname === "/dashboard/ghost"} />
           </nav>
           
         </aside>
@@ -160,6 +162,7 @@ export default function DashboardLayout({
                  {pathname === "/dashboard/issues" && "Issues"}
                  {pathname === "/dashboard/settings" && "Settings"}
                  {pathname === "/dashboard/personality" && "AI Personality"}
+                 {pathname === "/dashboard/ghost" && "Ghost Mode"}
                </span>
             </div>
 
